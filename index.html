@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linfovia: Viaje por la Red Linfatica</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#F7F7F9;font-family:'Segoe UI',Inter,system-ui,sans-serif;overflow:hidden;user-select:none}
+canvas{display:block;width:100vw;height:100vh}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:100}
+.overlay.active{pointer-events:all}
+.overlay>*{pointer-events:all}
+#mainMenu{background:linear-gradient(135deg,#F7F7F9 0%,#EADFF7 50%,#BEE7E8 100%);flex-direction:column;gap:12px;z-index:100}
+#mainMenu.active{display:flex}
+#mainMenu h1{font-size:clamp(36px,6vw,72px);color:#A3D9A5;text-shadow:0 2px 20px rgba(163,217,165,0.3);letter-spacing:4px}
+#mainMenu h2{font-size:clamp(14px,2vw,22px);color:#7FD6B8;letter-spacing:2px;margin-top:-8px}
+.menuBtn{min-width:280px;padding:14px 32px;font-size:18px;border:2px solid;border-radius:12px;cursor:pointer;transition:all .15s;font-weight:600;background:rgba(255,255,255,0.7)}
+.menuBtn:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+.menuBtn.primary{border-color:#A3D9A5;color:#2d6a2f;background:rgba(163,217,165,0.2)}
+.menuBtn.secondary{border-color:#BEE7E8;color:#3a7a7c;background:rgba(190,231,232,0.2)}
+.menuBtn.small{min-width:200px;padding:10px 24px;font-size:15px;border-color:#EDEDED;color:#666}
+.mSpace{height:12px}
+#hud{position:fixed;top:0;left:0;width:100%;padding:8px 16px;display:none;align-items:center;justify-content:space-between;background:rgba(247,247,249,0.9);backdrop-filter:blur(8px);border-bottom:1px solid #EDEDED;z-index:50}
+#hud.active{display:flex}
+.hudL{display:flex;align-items:center;gap:16px}
+.hudT{font-size:16px;font-weight:700;color:#A3D9A5}
+.hudS{font-size:12px;color:#888}
+.hudP{width:200px;height:6px;background:#EDEDED;border-radius:3px;overflow:hidden}
+.hudPF{height:100%;background:linear-gradient(90deg,#A3D9A5,#7FD6B8);border-radius:3px;transition:width .5s}
+.hudScore{font-size:14px;color:#7FD6B8;font-weight:600}
+.hudR{display:flex;gap:8px}
+.hudBtn{padding:6px 12px;border:1px solid #EDEDED;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#666}
+.hudBtn:hover{background:#EDEDED}
+#dlg{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);width:min(600px,90%);background:rgba(255,245,230,0.95);border-radius:16px;border:2px solid #EADFF7;padding:24px;display:none;z-index:60;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+#dlg.active{display:block}
+#dlg .dt{font-size:20px;font-weight:700;color:#A3D9A5;margin-bottom:8px}
+#dlg .dx{font-size:15px;color:#444;line-height:1.6;margin-bottom:16px;white-space:pre-line}
+#dlg .dc{display:flex;flex-direction:column;gap:8px}
+#dlg .db{padding:10px 16px;border:2px solid #BEE7E8;border-radius:10px;background:rgba(190,231,232,0.15);cursor:pointer;font-size:15px;color:#3a7a7c;text-align:center}
+#dlg .db:hover{background:rgba(190,231,232,0.4);border-color:#7FD6B8}
+#ip{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#fff;padding:8px 20px;border-radius:20px;font-size:14px;display:none;z-index:55;white-space:nowrap}
+#ip.active{display:block}
+#tz{position:fixed;bottom:50px;left:10px;background:rgba(0,0,0,0.5);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;z-index:55}
+#mm{position:fixed;bottom:50px;right:10px;width:200px;height:100px;background:rgba(247,247,249,0.9);border:1px solid #EDEDED;border-radius:8px;display:none;z-index:55;overflow:hidden}
+#mm.active{display:block}
+#mc{width:100%;height:100%}
+#sbp{position:fixed;top:50px;right:10px;background:rgba(255,245,230,0.95);border-radius:12px;border:1px solid #EDEDED;padding:16px;display:none;z-index:60;width:220px;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+#sbp.active{display:block}
+#sbp h3{font-size:14px;color:#A3D9A5;margin-bottom:12px}
+.tb{display:block;width:100%;padding:8px 12px;margin-bottom:6px;border:1px solid #EDEDED;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;text-align:left}
+.tb:hover{background:rgba(163,217,165,0.2);border-color:#A3D9A5}
+.tb.on{background:rgba(163,217,165,0.3);border-color:#7FD6B8;font-weight:600}
+.spc{margin-top:12px;display:flex;align-items:center;gap:8px}
+.spc label{font-size:12px;color:#666}
+.spc input[type=range]{flex:1}
+#pause{background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);flex-direction:column;gap:12px}
+#pause.active{display:flex}
+#pause h2{font-size:32px;color:#fff;margin-bottom:16px}
+#pause .menuBtn{background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.4)}
+#settings{background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);flex-direction:column;gap:12px}
+#settings.active{display:flex}
+#settings .sc{background:#F7F7F9;border-radius:16px;padding:24px;width:min(500px,90%);max-height:80vh;overflow-y:auto}
+#settings h2{font-size:22px;color:#A3D9A5;margin-bottom:16px}
+.sr{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EDEDED}
+.sr label{font-size:14px;color:#444}
+.sr select,.sr input[type=range]{padding:4px 8px;border:1px solid #EDEDED;border-radius:6px;background:#fff;font-size:13px}
+#bp{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-100px);background:rgba(163,217,165,0.95);color:#fff;padding:12px 24px;border-radius:12px;font-size:16px;font-weight:600;z-index:70;transition:transform .5s ease;white-space:nowrap}
+#bp.active{transform:translateX(-50%) translateY(0)}
+#cp{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.97);border-radius:16px;border:2px solid #EADFF7;padding:24px;width:min(450px,90%);z-index:65;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+#cp.active{display:block}
+#cp .ct{font-size:18px;font-weight:700;color:#A3D9A5;margin-bottom:8px}
+#cp .cx{font-size:14px;color:#444;line-height:1.7;margin-bottom:16px}
+#cc{padding:8px 20px;border:2px solid #7FD6B8;border-radius:8px;background:rgba(127,214,184,0.2);cursor:pointer;font-size:14px;color:#2d8a6e;font-weight:600}
+#quizS{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#F7F7F9,#EADFF7);display:none;flex-direction:column;align-items:center;gap:12px;padding:24px;overflow-y:auto;z-index:90}
+#quizS.active{display:flex}
+.qh{text-align:center;margin-bottom:8px}
+.qt{font-size:24px;font-weight:700;color:#A3D9A5}
+.qp{width:400px;max-width:80%;height:8px;background:#EDEDED;border-radius:4px;overflow:hidden;margin:8px auto}
+.qpf{height:100%;background:#7FD6B8;border-radius:4px;transition:width .3s}
+.qqs{font-size:16px;color:#7FD6B8;font-weight:600}
+.qq{font-size:20px;font-weight:600;color:#333;text-align:center;max-width:600px;line-height:1.5;margin:16px 0}
+.qa{display:flex;flex-direction:column;gap:10px;width:min(500px,90%)}
+.qab{padding:14px 20px;border:2px solid #EDEDED;border-radius:12px;background:#fff;cursor:pointer;font-size:16px;transition:all .15s;text-align:left}
+.qab:hover{border-color:#7FD6B8;background:rgba(127,214,184,0.15)}
+.qab.ok{border-color:#A3D9A5;background:rgba(163,217,165,0.3);color:#2d6a2f}
+.qab.no{border-color:#E64A4A;background:rgba(230,74,74,0.15);color:#c0392b}
+.qab.dis{pointer-events:none;opacity:0.6}
+.qf{font-size:14px;color:#555;text-align:center;max-width:500px;line-height:1.5;min-height:50px;padding:12px;background:rgba(255,255,255,0.5);border-radius:10px}
+.qn{padding:12px 32px;border:2px solid #7FD6B8;border-radius:10px;background:rgba(127,214,184,0.2);cursor:pointer;font-size:16px;color:#2d8a6e;font-weight:600;display:none}
+.qn:hover{background:rgba(127,214,184,0.4)}
+.qr{text-align:center;padding:20px}
+.qr h3{font-size:28px;color:#A3D9A5;margin-bottom:8px}
+.qr p{font-size:16px;color:#555;line-height:1.6}
+
+/* Auth & Analytics */
+#auth{background:linear-gradient(135deg,#F7F7F9,#EADFF7);flex-direction:column;gap:12px}
+#auth.active{display:flex}
+.ac{background:#fff;border-radius:16px;padding:24px;width:min(400px,90%);box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.ac h2{font-size:22px;color:#A3D9A5;margin-bottom:4px}
+.ac .sub{font-size:13px;color:#888;margin-bottom:16px}
+.af{display:flex;flex-direction:column;gap:10px}
+.af input,.af select{padding:10px 14px;border:2px solid #EDEDED;border-radius:10px;font-size:15px;outline:none}
+.af input:focus,.af select:focus{border-color:#7FD6B8}
+.af button{padding:12px;border:2px solid #A3D9A5;border-radius:10px;background:rgba(163,217,165,0.2);cursor:pointer;font-size:16px;color:#2d6a2f;font-weight:600;margin-top:4px}
+.af button:hover{background:rgba(163,217,165,0.4)}
+.af .alt{text-align:center;font-size:13px;color:#888;margin-top:8px;cursor:pointer}
+.af .alt:hover{color:#A3D9A5}
+#analytics{background:linear-gradient(135deg,#F7F7F9,#EADFF7);flex-direction:column;gap:12px;padding:24px;overflow-y:auto}
+#analytics.active{display:flex}
+.anC{background:#fff;border-radius:16px;padding:24px;width:min(900px,95%);max-height:85vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.anC h2{font-size:22px;color:#A3D9A5;margin-bottom:16px}
+.anC table{width:100%;border-collapse:collapse;font-size:14px}
+.anC th{background:#F7F7F9;padding:10px;text-align:left;border-bottom:2px solid #EDEDED;color:#555}
+.anC td{padding:10px;border-bottom:1px solid #EDEDED;color:#333}
+.anC .stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.anC .statCard{background:#F7F7F9;border-radius:10px;padding:16px;text-align:center}
+.anC .statCard .val{font-size:28px;font-weight:700;color:#A3D9A5}
+.anC .statCard .lbl{font-size:12px;color:#888;margin-top:4px}
+.anC .expBtn{padding:10px 20px;border:2px solid #7FD6B8;border-radius:10px;background:rgba(127,214,184,0.2);cursor:pointer;font-size:14px;color:#2d8a6e;font-weight:600;margin-top:16px}
+</style>
+</head>
+<body>
+<canvas id="gc"></canvas>
+
+<!-- AUTH SCREEN -->
+<div id="auth" class="overlay active">
+  <div class="ac" id="authLogin">
+    <h2>Bienvenido a Linfovia</h2>
+    <div class="sub">Inicia sesion o registrate para comenzar</div>
+    <div class="af">
+      <input id="aUser" placeholder="Nombre de usuario" autocomplete="off">
+      <input id="aPass" type="password" placeholder="Contrasena">
+      <select id="aRole">
+        <option value="student">Estudiante</option>
+        <option value="teacher">Docente / Observador</option>
+      </select>
+      <button onclick="doAuth()">Iniciar sesion / Registrarse</button>
+      <div class="alt" onclick="toggleRegInfo()">Nuevo aqui? Crear cuenta</div>
+    </div>
+    <div id="regInfo" style="display:none;margin-top:12px;padding:12px;background:#F7F7F9;border-radius:10px;font-size:13px;color:#555;line-height:1.5">
+      <b>Para estudiantes:</b> Elige un nombre de usuario y contrasena. Tu progreso se guardara automaticamente.<br>
+      <b>Para docentes:</b> Selecciona "Docente" para acceder al panel de analytics y ver el progreso de todos los jugadores.
+    </div>
+  </div>
+</div>
+
+<!-- MAIN MENU -->
+<div id="mainMenu" class="overlay">
+  <h1>LINFOVIA</h1>
+  <h2>Viaje por la Red Linfatica</h2>
+  <div class="mSpace"></div>
+  <button class="menuBtn primary" onclick="startGame('learning')">Modo Aprendizaje</button>
+  <button class="menuBtn secondary" onclick="startGame('exploration')">Modo Exploracion</button>
+  <button class="menuBtn secondary" onclick="startSandbox()">Laboratorio Virtual</button>
+  <div class="mSpace"></div>
+  <button class="menuBtn small" onclick="showSettings()">Configuracion</button>
+  <button class="menuBtn small" onclick="goToAnalytics()">Panel Docente</button>
+  <div class="mSpace"></div>
+  <div id="userDisplay" style="font-size:13px;color:#888;margin-top:4px"></div>
+  <button class="menuBtn small" onclick="doLogout()" style="min-width:160px;font-size:13px;padding:8px 16px">Cerrar sesion</button>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hudL">
+    <div>
+      <div class="hudT" id="hudTitle">Vasos Linfaticos</div>
+      <div class="hudS" id="hudSubtitle">Nivel 1 de 5</div>
+    </div>
+    <div class="hudP"><div class="hudPF" id="hudPF" style="width:0%"></div></div>
+    <div class="hudScore" id="hudScore">Puntos: 0</div>
+  </div>
+  <div class="hudR">
+    <button class="hudBtn" onclick="toggleMM()">Mapa</button>
+    <button class="hudBtn" onclick="togglePause()">Pausa</button>
+    <button class="hudBtn" onclick="goToMenu()">Menu</button>
+  </div>
+</div>
+
+<!-- DIALOGUE -->
+<div id="dlg">
+  <div class="dt" id="dlgT"></div>
+  <div class="dx" id="dlgX"></div>
+  <div class="dc" id="dlgC"></div>
+</div>
+
+<!-- INTERACT PROMPT -->
+<div id="ip">Presiona E para interactuar</div>
+
+<!-- ZOOM -->
+<div id="tz">Zoom: x1</div>
+
+<!-- MINIMAP -->
+<div id="mm"><canvas id="mc"></canvas></div>
+
+<!-- SANDBOX PANEL -->
+<div id="sbp">
+  <h3>Herramientas</h3>
+  <button class="tb" data-t="flow" onclick="selTool('flow')">Control de flujo</button>
+  <button class="tb" data-t="valve" onclick="selTool('valve')">Anadir/Quitar valvula</button>
+  <button class="tb" data-t="pump" onclick="selTool('pump')">Activar bomba</button>
+  <button class="tb" data-t="obstruct" onclick="selTool('obstruct')">Anadir obstruccion</button>
+  <button class="tb" data-t="pathogen" onclick="selTool('pathogen')">Anadir patogeno</button>
+  <button class="tb" data-t="clear" onclick="clearSB()">Limpiar todo</button>
+  <div class="spc">
+    <label>Velocidad:</label>
+    <input type="range" min="0.25" max="3" step="0.25" value="1" oninput="setSpd(this.value)">
+    <span id="spLbl">1x</span>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div id="pause" class="overlay">
+  <h2>Pausa</h2>
+  <button class="menuBtn" onclick="togglePause()">Continuar</button>
+  <button class="menuBtn" onclick="goToMenu()">Menu principal</button>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" class="overlay">
+  <div class="sc">
+    <h2>Configuracion</h2>
+    <div class="sr">
+      <label>Modo de color</label>
+      <select onchange="stgs.cb=this.value">
+        <option value="default">Normal</option>
+        <option value="protanopia">Protanopia</option>
+        <option value="deuteranopia">Deuteranopia</option>
+        <option value="tritanopia">Tritanopia</option>
+      </select>
+    </div>
+    <div class="sr">
+      <label>Tamano de texto</label>
+      <input type="range" min="0.75" max="1.5" step="0.25" value="1" oninput="document.body.style.fontSize=(14*parseFloat(this.value))+'px'">
+    </div>
+    <div class="sr">
+      <label>Subtitulos</label>
+      <input type="checkbox" checked onchange="stgs.sub=this.checked">
+    </div>
+    <button class="menuBtn small" onclick="hideSettings()" style="margin-top:16px">Cerrar</button>
+  </div>
+</div>
+
+<!-- BADGE POPUP -->
+<div id="bp">Medalla obtenida!</div>
+
+<!-- CARD POPUP -->
+<div id="cp">
+  <div class="ct" id="cpT"></div>
+  <div class="cx" id="cpX"></div>
+  <button id="cc" onclick="closeCP()">Cerrar</button>
+</div>
+
+<!-- QUIZ -->
+<div id="quizS">
+  <div class="qh">
+    <div class="qt">Evaluacion</div>
+    <div class="qp"><div class="qpf" id="qpf" style="width:0%"></div></div>
+    <div class="qqs" id="qqs">Puntuacion: 0/0</div>
+  </div>
+  <div class="qq" id="qq"></div>
+  <div class="qa" id="qa"></div>
+  <div class="qf" id="qf"></div>
+  <button class="qn" id="qn" onclick="nextQ()">Siguiente</button>
+  <div class="qr" id="qr" style="display:none"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="analytics" class="overlay">
+  <div class="anC" id="anC"></div>
+</div>
+
+<script>
+/* LINFOVIA - Complete HTML5 Game */
+
+/* --- CONSTANTS --- */
+var C_GREEN='#A3D9A5',C_AQUA='#BEE7E8',C_LAV='#EADFF7',C_CREAM='#FFF5E6';
+var C_WHITE='#F7F7F9',C_GRAY='#EDEDED',C_CORAL='#FFB3A7',C_FLOW='#7FD6B8',C_RED='#E64A4A',C_DARK='#333';
+
+/* --- CANVAS --- */
+var cv=document.getElementById('gc'),cx=cv.getContext('2d');
+var mcv=document.getElementById('mc'),mcx=mcv.getContext('2d');
+function rsz(){cv.width=window.innerWidth;cv.height=window.innerHeight;mcv.width=200;mcv.height=100}
+rsz();window.addEventListener('resize',rsz);
+function W(){return window.innerWidth}function H(){return window.innerHeight}
+
+/* --- AUDIO --- */
+var actx=null;
+function ea(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)()}
+function tone(f,d,t,v){ea();var o=actx.createOscillator(),g=actx.createGain();o.type=t||'sine';o.frequency.setValueAtTime(f,actx.currentTime);g.gain.setValueAtTime(v||0.12,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d);o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+d)}
+function sfxClick(){tone(800,0.08,'sine',0.1)}
+function sfxOk(){tone(523,0.15);setTimeout(function(){tone(659,0.15)},100);setTimeout(function(){tone(784,0.2)},200)}
+function sfxNo(){tone(200,0.3,'square',0.07)}
+function sfxBub(){tone(600+Math.random()*400,0.1,'sine',0.05)}
+function sfxUnlock(){var fs=[523,659,784,1047];fs.forEach(function(f,i){setTimeout(function(){tone(f,0.2,'sine',0.1)},i*80)})}
+function sfxBadge(){var fs=[784,988,1175,1319,1568];fs.forEach(function(f,i){setTimeout(function(){tone(f,0.3,'sine',0.08)},i*120)})}
+function sfxValve(){tone(300,0.15,'triangle',0.08)}
+function sfxPump(){tone(150,0.3,'sawtooth',0.05)}
+
+/* --- USER / AUTH --- */
+var currentUser=null;
+var stgs={cb:'default',sub:true,narr:false};
+function getUsers(){try{return JSON.parse(localStorage.getItem('linfovia_users'))||{}}catch(e){return{}}}
+function saveUsers(u){localStorage.setItem('linfovia_users',JSON.stringify(u))}
+function getDB(){try{return JSON.parse(localStorage.getItem('linfovia_db'))||{users:[],sessions:[],analytics:{}}}catch(e){return{users:[],sessions:[],analytics:{}}}}
+function saveDB(d){localStorage.setItem('linfovia_db',JSON.stringify(d))}
+
+function doAuth(){
+  ea();sfxClick();
+  var usr=document.getElementById('aUser').value.trim();
+  var pass=document.getElementById('aPass').value.trim();
+  var role=document.getElementById('aRole').value;
+  if(!usr||!pass){alert('Ingresa usuario y contrasena');return}
+  var users=getUsers();
+  if(users[usr]&&users[usr].pass!==pass){alert('Contrasena incorrecta');return}
+  if(!users[usr]){
+    users[usr]={pass:pass,role:role,created:new Date().toISOString(),scores:{},badges:[],cards:{},timePlayed:0,quizzes:[]};
+    saveUsers(users);
+  }
+  currentUser={name:usr,role:users[usr].role,data:users[usr]};
+  var db=getDB();
+  db.sessions.push({user:usr,time:new Date().toISOString(),action:'login'});
+  saveDB(db);
+  document.getElementById('auth').classList.remove('active');
+  document.getElementById('mainMenu').classList.add('active');
+  document.getElementById('userDisplay').textContent='Conectado: '+usr;
+}
+
+function doLogout(){
+  sfxClick();
+  var db=getDB();
+  db.sessions.push({user:currentUser.name,time:new Date().toISOString(),action:'logout'});
+  saveDB(db);
+  saveUserProgress();
+  currentUser=null;
+  document.getElementById('mainMenu').classList.remove('active');
+  document.getElementById('auth').classList.add('active');
+  goToMenu();
+}
+
+function toggleRegInfo(){
+  var el=document.getElementById('regInfo');
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function saveUserProgress(){
+  if(!currentUser)return;
+  var users=getUsers();
+  if(!users[currentUser.name])return;
+  users[currentUser.name].scores=state.score;
+  users[currentUser.name].badges=state.badges;
+  users[currentUser.name].cards=Object.keys(state.cards).filter(function(k){return state.cards[k]});
+  users[currentUser.name].quizzes=state.quizResults||[];
+  users[currentUser.name].timePlayed=(users[currentUser.name].timePlayed||0)+state.time;
+  saveUsers(users);
+  var db=getDB();
+  db.analytics[currentUser.name]={
+    score:state.score,
+    badges:state.badges.length,
+    cardsCollected:Object.keys(state.cards).filter(function(k){return state.cards[k]}).length,
+    puzzlesCompleted:state.puzzlesCompleted.length,
+    quizzes:state.quizResults||[],
+    timePlayed:users[currentUser.name].timePlayed,
+    lastActive:new Date().toISOString()
+  };
+  saveDB(db);
+}
+
+function goToAnalytics(){
+  if(!currentUser||currentUser.role!=='teacher'){alert('Solo docentes pueden acceder al panel de analytics');return}
+  sfxClick();
+  document.getElementById('mainMenu').classList.remove('active');
+  document.getElementById('analytics').classList.add('active');
+  renderAnalytics();
+}
+
+function renderAnalytics(){
+  var db=getDB();
+  var users=getUsers();
+  var an=db.analytics||{};
+  var keys=Object.keys(an);
+  var totalPlayers=Object.keys(users).filter(function(k){return users[k].role==='student'}).length;
+  var totalQuizzes=0,totalScore=0;
+  keys.forEach(function(k){
+    if(an[k].quizzes){totalQuizzes+=an[k].quizzes.length}
+    totalScore+=an[k].score||0;
+  });
+
+  var html='<h2>Panel de Analytics Docente</h2>';
+  html+='<div class="stat">';
+  html+='<div class="statCard"><div class="val">'+totalPlayers+'</div><div class="lbl">Estudiantes registrados</div></div>';
+  html+='<div class="statCard"><div class="val">'+keys.length+'</div><div class="lbl">Con actividad</div></div>';
+  html+='<div class="statCard"><div class="val">'+totalQuizzes+'</div><div class="lbl">Quizzes realizados</div></div>';
+  html+='<div class="statCard"><div class="val">'+totalScore+'</div><div class="lbl">Puntos totales</div></div>';
+  html+='</div>';
+
+  if(keys.length===0){
+    html+='<p style="color:#888;text-align:center;padding:40px">No hay datos aun. Los estudiantes deben jugar primero.</p>';
+  }else{
+    html+='<table><tr><th>Usuario</th><th>Puntos</th><th>Puzzles</th><th>Tarjetas</th><th>Medallas</th><th>Quizzes</th><th>Tiempo (min)</th><th>Ultima actividad</th></tr>';
+    keys.forEach(function(k){
+      var d=an[k];
+      var u=users[k]||{};
+      var pct=d.quizzes&&d.quizzes.length>0?Math.round(d.quizzes[d.quizzes.length-1].pct):'-';
+      html+='<tr>';
+      html+='<td><b>'+k+'</b></td>';
+      html+='<td>'+d.score+'</td>';
+      html+='<td>'+d.puzzlesCompleted+'/3</td>';
+      html+='<td>'+d.cardsCollected+'/3</td>';
+      html+='<td>'+d.badges+'</td>';
+      html+='<td>'+pct+'% ('+(d.quizzes?d.quizzes.length:0)+')</td>';
+      html+='<td>'+Math.round((d.timePlayed||0)/60)+'</td>';
+      html+='<td>'+new Date(d.lastActive).toLocaleDateString('es')+'</td>';
+      html+='</tr>';
+    });
+    html+='</table>';
+  }
+  html+='<button class="expBtn" onclick="exportJSON()">Exportar datos JSON</button>';
+  html+='<button class="expBtn" onclick="closeAnalytics()" style="margin-left:8px;border-color:#EDEDED;color:#666;background:rgba(237,237,237,0.2)">Volver al menu</button>';
+  document.getElementById('anC').innerHTML=html;
+}
+
+function exportJSON(){
+  var db=getDB();
+  var users=getUsers();
+  var data={exportDate:new Date().toISOString(),users:users,analytics:db.analytics,sessions:db.sessions};
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='linfovia_analytics_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(url);
+}
+
+function closeAnalytics(){
+  sfxClick();
+  document.getElementById('analytics').classList.remove('active');
+  document.getElementById('mainMenu').classList.add('active');
+}
+
+/* --- GAME STATE --- */
+var state={mode:'menu',score:0,progress:0,badges:[],cards:{},time:0,currentPuzzle:0,puzzlesCompleted:[],quizResults:[]};
+
+/* --- PLAYER --- */
+var player={x:100,y:300,speed:180,size:16,vx:0,vy:0,zoom:0,facing:{x:1,y:0},near:null};
+
+/* --- LEVEL DATA --- */
+var levelBounds={w:1600,h:800};
+var vesselPath=[
+  {x:50,y:350},{x:200,y:300},{x:350,y:250},{x:500,y:280},
+  {x:650,y:250},{x:800,y:300},{x:950,y:280},{x:1100,y:350},
+  {x:1200,y:400},{x:1350,y:380},{x:1500,y:350}
+];
+var vesselWalls=[
+  [{x:30,y:310},{x:200,y:260},{x:350,y:210},{x:500,y:240},{x:650,y:210},{x:800,y:260},{x:950,y:240},{x:1100,y:310},{x:1200,y:360},{x:1350,y:340},{x:1520,y:310}],
+  [{x:30,y:390},{x:200,y:340},{x:350,y:290},{x:500,y:320},{x:650,y:290},{x:800,y:340},{x:950,y:320},{x:1100,y:390},{x:1200,y:440},{x:1350,y:420},{x:1520,y:390}]
+];
+var valves=[
+  {id:'v1',x:350,y:250,open:false,size:20},
+  {id:'v2',x:650,y:250,open:false,size:20},
+  {id:'v3',x:950,y:280,open:false,size:20}
+];
+var pumps=[
+  {id:'p1',x:450,y:360,active:false,cd:0,rad:60,str:1.5},
+  {id:'p2',x:750,y:360,active:false,cd:0,rad:60,str:1.5},
+  {id:'p3',x:1050,y:370,active:false,cd:0,rad:60,str:1.5}
+];
+var obstructions=[
+  {id:'o1',x:800,y:300,hits:2,maxHits:2,size:25}
+];
+var kCards=[
+  {id:'c1',x:250,y:200,title:'Estructura de los Vasos',text:'Los vasos linfaticos son conductos de pared fina con valvulas internas. Transportan linfa desde los tejidos hacia el sistema venoso.',collected:false},
+  {id:'c2',x:550,y:180,title:'Valvulas Linfaticas',text:'Las valvulas semilunares aseguran flujo unidireccional. Se abren cuando la presion aguas abajo es menor y se cierran para evitar reflujo.',collected:false},
+  {id:'c3',x:900,y:200,title:'Bombas Musculares',text:'La contraccion muscular comprime los vasos linfaticos, impulsando la linfa. El ejercicio favorece el drenaje linfatico.',collected:false}
+];
+
+/* --- PARTICLES --- */
+var particles=[];
+function Particle(){this.t=0;this.spd=0.02+Math.random()*0.015;this.off=(Math.random()-0.5)*40;this.sz=3+Math.random()*4;this.al=0.4+Math.random()*0.4;this.col=Math.random()>0.5?C_GREEN:C_AQUA}
+for(var pi=0;pi<80;pi++){var pp=new Particle();pp.t=Math.random();particles.push(pp)}
+
+/* PATH HELPERS */
+var _pathLen=0,_segLens=[];
+function calcPath(){
+  _pathLen=0;_segLens=[];
+  for(var i=1;i<vesselPath.length;i++){
+    var dx=vesselPath[i].x-vesselPath[i-1].x,dy=vesselPath[i].y-vesselPath[i-1].y;
+    var len=Math.sqrt(dx*dx+dy*dy);_segLens.push(len);_pathLen+=len;
+  }
+}
+calcPath();
+function posAtT(t){
+  t=Math.max(0,Math.min(1,t));
+  var tgt=t*_pathLen,acc=0;
+  for(var i=0;i<_segLens.length;i++){
+    if(acc+_segLens[i]>=tgt){
+      var f=(tgt-acc)/_segLens[i];
+      return{x:vesselPath[i].x+(vesselPath[i+1].x-vesselPath[i].x)*f,y:vesselPath[i].y+(vesselPath[i+1].y-vesselPath[i].y)*f};
+    }
+    acc+=_segLens[i];
+  }
+  return{x:vesselPath[vesselPath.length-1].x,y:vesselPath[vesselPath.length-1].y};
+}
+
+/* --- CAMERA --- */
+var cam={x:0,y:0};
+function updCam(){
+  var zl=[1,1.3,1.8,2.5],z=zl[player.zoom];
+  var tx=player.x-W()/(2*z),ty=player.y-H()/(2*z);
+  cam.x+=(tx-cam.x)*0.1;cam.y+=(ty-cam.y)*0.1;
+}
+
+/* --- INPUT --- */
+var keys={};
+window.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;
+  if(e.key==='Escape'&&(state.mode==='learning'||state.mode==='exploration'||state.mode==='sandbox'))togglePause();
+  if(e.key.toLowerCase()==='e'&&state.mode!=='menu'&&state.mode!=='quiz'&&state.mode!=='paused')tryInteract();
+  if(e.key.toLowerCase()==='q'){player.zoom=Math.min(3,player.zoom+1);updZoomDisp()}
+  if(e.key.toLowerCase()==='x'){player.zoom=Math.max(0,player.zoom-1);updZoomDisp()}
+  if(e.key.toLowerCase()==='m')toggleMM()});
+window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false});
+cv.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY});
+var mx=0,my=0;
+cv.addEventListener('mousedown',function(e){if(state.mode==='sandbox')sbClick(e.clientX,e.clientY);else tryClick(e.clientX,e.clientY)});
+
+function tryClick(cx2,cy2){
+  if(state.mode==='menu'||state.mode==='quiz')return;
+  var wx=cx2+cam.x,wy=cy2+cam.y;
+  valves.forEach(function(v){if(Math.hypot(wx-v.x,wy-v.y)<v.size+10){v.open=!v.open;sfxValve();chkP1()}});
+  pumps.forEach(function(p){if(Math.hypot(wx-p.x,wy-p.y)<30&&p.cd<=0){p.active=true;p.cd=2;sfxPump();chkP2()}});
+  for(var i=0;i<obstructions.length;i++){var o=obstructions[i];if(Math.hypot(wx-o.x,wy-o.y)<o.size+10){o.hits--;sfxBub();if(o.hits<=0){obstructions.splice(i,1);chkP3()}break}}
+  kCards.forEach(function(c){if(!c.collected&&Math.hypot(wx-c.x,wy-c.y)<30){c.collected=true;state.cards[c.id]=true;showCP(c);sfxUnlock()}});
+}
+
+function tryInteract(){
+  var nearest=null,md=80;
+  valves.forEach(function(v){var d=Math.hypot(player.x-v.x,player.y-v.y);if(d<md){md=d;nearest={type:'valve',ref:v}}});
+  if(!nearest)pumps.forEach(function(p){if(p.cd<=0){var d=Math.hypot(player.x-p.x,player.y-p.y);if(d<md){md=d;nearest={type:'pump',ref:p}}}});
+  if(!nearest)obstructions.forEach(function(o){var d=Math.hypot(player.x-o.x,player.y-o.y);if(d<md){md=d;nearest={type:'obs',ref:o}}});
+  if(!nearest)kCards.forEach(function(c){if(!c.collected){var d=Math.hypot(player.x-c.x,player.y-c.y);if(d<md){md=d;nearest={type:'card',ref:c}}}});
+  if(!nearest)return;
+  sfxClick();
+  if(nearest.type==='valve'){nearest.ref.open=!nearest.ref.open;sfxValve();chkP1()}
+  else if(nearest.type==='pump'){if(nearest.ref.cd<=0){nearest.ref.active=true;nearest.ref.cd=2;sfxPump();chkP2()}}
+  else if(nearest.type==='obs'){nearest.ref.hits--;sfxBub();if(nearest.ref.hits<=0){var idx=obstructions.indexOf(nearest.ref);if(idx>=0)obstructions.splice(idx,1);chkP3()}}
+  else if(nearest.type==='card'){if(!nearest.ref.collected){nearest.ref.collected=true;state.cards[nearest.ref.id]=true;showCP(nearest.ref);sfxUnlock()}}
+}
+
+/* --- PLAYER UPDATE --- */
+function updPlayer(dt){
+  if(state.mode!=='learning'&&state.mode!=='exploration'&&state.mode!=='sandbox')return;
+  var dx=0,dy=0;
+  if(keys['w']||keys['arrowup'])dy-=1;if(keys['s']||keys['arrowdown'])dy+=1;
+  if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
+  if(dx||dy){var l=Math.sqrt(dx*dx+dy*dy);dx/=l;dy/=l;player.facing={x:dx,y:dy}}
+  player.vx+=dx*player.speed*dt*5;player.vy+=dy*player.speed*dt*5;
+  player.vx*=0.85;player.vy*=0.85;
+  player.x+=player.vx*dt;player.y+=player.vy*dt;
+  player.x=Math.max(30,Math.min(levelBounds.w-30,player.x));
+  player.y=Math.max(30,Math.min(levelBounds.h-30,player.y));
+  /* proximity */
+  var nr=null;
+  valves.forEach(function(v){if(Math.hypot(player.x-v.x,player.y-v.y)<50)nr={type:'valve',ref:v}});
+  if(!nr)pumps.forEach(function(p){if(p.cd<=0&&Math.hypot(player.x-p.x,player.y-p.y)<50)nr={type:'pump',ref:p}});
+  if(!nr)obstructions.forEach(function(o){if(Math.hypot(player.x-o.x,player.y-o.y)<50)nr={type:'obs',ref:o}});
+  if(!nr)kCards.forEach(function(c){if(!c.collected&&Math.hypot(player.x-c.x,player.y-c.y)<50)nr={type:'card',ref:c}});
+  player.near=nr;
+  var pr=document.getElementById('ip');
+  if(nr){pr.classList.add('active');
+    if(nr.type==='card')pr.textContent='Presiona E para leer';
+    else if(nr.type==='valve')pr.textContent=nr.ref.open?'Valvula abierta (E cerrar)':'Valvula cerrada (E abrir)';
+    else if(nr.type==='pump')pr.textContent=nr.ref.cd>0?'Enfriamiento...':'Bomba (E activar)';
+    else if(nr.type==='obs')pr.textContent='Obstruccion ('+nr.ref.hits+' golpes)';
+    else pr.textContent='E para interactuar';
+  }else{pr.classList.remove('active')}
+}
+
+/* --- DRAWING --- */
+function drawBG(){
+  var g=cx.createLinearGradient(0,0,0,H());
+  g.addColorStop(0,'#F0F5F0');g.addColorStop(0.5,'#F7F7F9');g.addColorStop(1,'#E8F0E8');
+  cx.fillStyle=g;cx.fillRect(0,0,W(),H());
+  cx.strokeStyle='rgba(200,220,200,0.12)';cx.lineWidth=1;
+  var gs=60,ox=-(cam.x%gs),oy=-(cam.y%gs);
+  for(var x=ox;x<W();x+=gs){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H());cx.stroke()}
+  for(var y=oy;y<H();y+=gs){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W(),y);cx.stroke()}
+}
+
+function drawVW(){
+  cx.strokeStyle='#C8E8D8';cx.lineWidth=40;cx.lineCap='round';cx.lineJoin='round';
+  vesselWalls.forEach(function(w){cx.beginPath();w.forEach(function(p,i){var sx=p.x-cam.x,sy=p.y-cam.y;i===0?cx.moveTo(sx,sy):cx.lineTo(sx,sy)});cx.stroke()});
+  cx.strokeStyle='rgba(200,232,216,0.3)';cx.lineWidth=36;
+  vesselWalls.forEach(function(w){cx.beginPath();w.forEach(function(p,i){var sx=p.x-cam.x,sy=p.y-cam.y;i===0?cx.moveTo(sx,sy):cx.lineTo(sx,sy)});cx.stroke()});
+}
+
+function drawValve(v){
+  var sx=v.x-cam.x,sy=v.y-cam.y;
+  if(sx<-50||sx>W()+50||sy<-50||sy>H()+50)return;
+  cx.save();cx.translate(sx,sy);
+  cx.fillStyle=v.open?C_FLOW:C_RED;cx.globalAlpha=0.8;
+  cx.beginPath();cx.ellipse(-v.size*0.3,0,v.size*0.4,v.size*0.8,0,0,Math.PI*2);cx.fill();
+  cx.beginPath();cx.ellipse(v.size*0.3,0,v.size*0.4,v.size*0.8,0,0,Math.PI*2);cx.fill();
+  cx.globalAlpha=1;cx.fillStyle=C_DARK;cx.font='11px sans-serif';cx.textAlign='center';
+  cx.fillText(v.open?'ABIERTA':'CERRADA',0,-v.size-5);cx.fillText(v.id,0,v.size+15);
+  cx.restore();
+}
+
+function drawPump(p){
+  var sx=p.x-cam.x,sy=p.y-cam.y;
+  if(sx<-50||sx>W()+50||sy<-50||sy>H()+50)return;
+  cx.save();cx.translate(sx,sy);
+  cx.fillStyle=p.active?C_FLOW:C_AQUA;cx.globalAlpha=p.active?0.9:0.5;
+  cx.beginPath();cx.arc(0,0,18,0,Math.PI*2);cx.fill();
+  cx.globalAlpha=1;cx.fillStyle=C_DARK;cx.font='14px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillText(p.active?'>':'P',0,1);
+  if(p.cd>0){cx.fillStyle=C_DARK;cx.font='10px sans-serif';cx.fillText(p.cd.toFixed(1)+'s',0,28)}
+  else if(!p.active){cx.fillStyle='#888';cx.font='10px sans-serif';cx.fillText(p.id,0,28)}
+  cx.restore();
+}
+
+function drawObs(o){
+  var sx=o.x-cam.x,sy=o.y-cam.y;
+  if(sx<-50||sx>W()+50||sy<-50||sy>H()+50)return;
+  cx.save();cx.translate(sx,sy);
+  cx.fillStyle=C_CORAL;cx.globalAlpha=0.7+(o.hits/o.maxHits)*0.3;
+  cx.beginPath();
+  for(var i=0;i<8;i++){var a=(i/8)*Math.PI*2,r=o.size*(0.7+Math.sin(i*2.5)*0.3);i===0?cx.moveTo(Math.cos(a)*r,Math.sin(a)*r):cx.lineTo(Math.cos(a)*r,Math.sin(a)*r)}
+  cx.closePath();cx.fill();
+  cx.globalAlpha=1;cx.fillStyle=C_DARK;cx.font='11px sans-serif';cx.textAlign='center';
+  cx.fillText(o.hits+'/'+o.maxHits,0,o.size+15);cx.restore();
+}
+
+function drawKCard(c){
+  if(c.collected)return;
+  var sx=c.x-cam.x,sy=c.y-cam.y;
+  if(sx<-50||sx>W()+50||sy<-50||sy>H()+50)return;
+  cx.save();cx.translate(sx,sy);
+  var pulse=Math.sin(state.time*3)*0.15+0.6;
+  cx.fillStyle=C_LAV;cx.globalAlpha=pulse;cx.beginPath();cx.arc(0,0,22,0,Math.PI*2);cx.fill();
+  cx.globalAlpha=1;cx.fillStyle='#fff';cx.strokeStyle=C_LAV;cx.lineWidth=2;
+  rr(cx,-10,-12,20,24,3);cx.fill();cx.stroke();
+  cx.fillStyle=C_GREEN;cx.font='11px sans-serif';cx.textAlign='center';cx.fillText('+',0,4);
+  cx.restore();
+}
+
+function drawPlayer2(){
+  var px=player.x-cam.x,py=player.y-cam.y,sz=player.size;
+  cx.save();cx.translate(px,py);
+  cx.fillStyle='rgba(0,0,0,0.08)';cx.beginPath();cx.ellipse(0,sz+2,sz*0.8,4,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle=C_GREEN;cx.beginPath();cx.arc(0,0,sz,0,Math.PI*2);cx.fill();
+  cx.fillStyle=C_FLOW;cx.globalAlpha=0.4;cx.beginPath();cx.arc(-3,-3,sz*0.6,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  var ex=player.facing.x*3,ey=player.facing.y*3;
+  cx.fillStyle='#fff';cx.beginPath();cx.ellipse(-4+ex,-4+ey,4.5,4.5,0,0,Math.PI*2);cx.fill();
+  cx.beginPath();cx.ellipse(4+ex,-4+ey,4.5,4.5,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle=C_DARK;cx.beginPath();cx.arc(-3+ex*1.2,-4+ey*1.2,2.2,0,Math.PI*2);cx.fill();
+  cx.beginPath();cx.arc(5+ex*1.2,-4+ey*1.2,2.2,0,Math.PI*2);cx.fill();
+  cx.strokeStyle=C_DARK;cx.lineWidth=1.5;cx.beginPath();cx.arc(0,2,4.5,0.1*Math.PI,0.9*Math.PI);cx.stroke();
+  cx.fillStyle=C_LAV;rr(cx,sz-2,-5,7,10,2);cx.fill();
+  cx.restore();
+}
+
+function drawParts(){
+  particles.forEach(function(p){
+    var pos=posAtT(p.t),x=pos.x-cam.x,y=pos.y-cam.y+p.off;
+    cx.globalAlpha=p.al;cx.fillStyle=p.col;cx.beginPath();cx.arc(x,y,p.sz,0,Math.PI*2);cx.fill();
+    cx.globalAlpha=p.al*0.25;cx.beginPath();cx.arc(x,y,p.sz*2,0,Math.PI*2);cx.fill();
+    cx.globalAlpha=1;
+  });
+}
+
+function updParts(dt){
+  particles.forEach(function(p){
+    var m=1;
+    valves.forEach(function(v){if(!v.open){var vp=getTAtX(v.x);if(Math.abs(p.t-vp)<0.03)m=0.05}});
+    var pos=posAtT(p.t);
+    pumps.forEach(function(pp){if(pp.active){var d=Math.hypot(pos.x-pp.x,pos.y-pp.y);if(d<pp.rad)m+=(1-d/pp.rad)*pp.str}});
+    obstructions.forEach(function(o){var d=Math.hypot(pos.x-o.x,pos.y-o.y);if(d<o.size+15)m*=0.2});
+    p.t+=p.spd*dt*m;if(p.t>1){p.t=0;p.col=Math.random()>0.5?C_GREEN:C_AQUA}
+  });
+}
+
+function getTAtX(x){
+  var bt=0,bd=Infinity;
+  for(var t=0;t<=1;t+=0.005){var d=Math.abs(posAtT(t).x-x);if(d<bd){bd=d;bt=t}}
+  return bt;
+}
+
+/* rounded rect helper */
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath()}
+
+/* --- MINIMAP --- */
+function drawMM(){
+  if(!document.getElementById('mm').classList.contains('active'))return;
+  var w=200,h=100,sx=w/levelBounds.w,sy=h/levelBounds.h;
+  mcx.fillStyle='rgba(247,247,249,0.95)';mcx.fillRect(0,0,w,h);
+  mcx.strokeStyle='#C8E8D8';mcx.lineWidth=6;mcx.beginPath();
+  vesselPath.forEach(function(p,i){i===0?mcx.moveTo(p.x*sx,p.y*sy):mcx.lineTo(p.x*sx,p.y*sy)});
+  mcx.stroke();
+  valves.forEach(function(v){mcx.fillStyle=v.open?C_FLOW:C_RED;mcx.fillRect(v.x*sx-2,v.y*sy-2,4,4)});
+  kCards.forEach(function(c){if(!c.collected){mcx.fillStyle=C_LAV;mcx.fillRect(c.x*sx-2,c.y*sy-2,4,4)}});
+  mcx.fillStyle=C_CORAL;mcx.beginPath();mcx.arc(player.x*sx,player.y*sy,3,0,Math.PI*2);mcx.fill();
+}
+
+/* --- GAME LOGIC --- */
+function chkP1(){if(state.currentPuzzle===0&&valves.every(function(v){return v.open}))compP('Valvulas Linfaticas',100)}
+function chkP2(){if(state.currentPuzzle===1)compP('Bombas Musculares',100)}
+function chkP3(){if(state.currentPuzzle===2&&obstructions.length===0)compP('Obstruccion y Drenaje',100)}
+
+function compP(name,pts){
+  var pid=state.puzzlesCompleted.length+'';
+  if(state.puzzlesCompleted.indexOf(name)>=0)return;
+  state.puzzlesCompleted.push(name);state.score+=pts;state.progress=Math.min(100,state.progress+33);
+  sfxOk();updHUD();
+  showDialogue('Puzzle completado!',name+'\nPuntos: +'+pts,[{label:'Continuar',action:'nextP'}]);
+  setTimeout(function(){startNextP()},200);
+}
+
+function startNextP(){
+  hideDlg();
+  if(state.puzzlesCompleted.length>=3){setTimeout(function(){startQuiz()},500)}
+  else{state.currentPuzzle=state.puzzlesCompleted.length;showPIntro(state.currentPuzzle)}
+}
+
+function showPIntro(idx){
+  var intros=[
+    {t:'Puzzle 1: Valvulas Linfaticas',x:'Las valvulas impiden el reflujo. Haz clic en cada valvula para abrirla. Todas deben abrirse para que la linfa fluya.'},
+    {t:'Puzzle 2: Bombas Musculares',x:'Las contracciones musculares impulsan la linfa. Haz clic en las bombas (P) para activarlas y observa como las particulas aceleran.'},
+    {t:'Puzzle 3: Obstruccion',x:'Hay una obstruccion en el vaso! Haz clic sobre ella repetidamente para eliminarla y restaurar el flujo.'}
+  ];
+  showDialogue(intros[idx].t,intros[idx].x,[{label:'Entendido!',action:''}]);
+}
+
+/* --- DIALOGUE --- */
+function showDialogue(t,x,choices){
+  document.getElementById('dlgT').textContent=t;
+  document.getElementById('dlgX').textContent=x;
+  var cd=document.getElementById('dlgC');cd.innerHTML='';
+  choices.forEach(function(c){
+    var b=document.createElement('button');b.className='db';b.textContent=c.label;
+    b.onclick=function(){sfxClick();if(c.action==='nextP')startNextP();else hideDlg()};
+    cd.appendChild(b);
+  });
+  document.getElementById('dlg').classList.add('active');
+}
+function hideDlg(){document.getElementById('dlg').classList.remove('active')}
+
+function updZoomDisp(){var lb=['Normal','x1.3','x1.8','x2.5'];document.getElementById('tz').textContent='Zoom: '+lb[player.zoom]}
+
+/* --- HUD --- */
+function updHUD(){document.getElementById('hudScore').textContent='Puntos: '+state.score;document.getElementById('hudPF').style.width=state.progress+'%'}
+
+/* --- BADGES --- */
+function earnBadge(name){
+  if(state.badges.indexOf(name)>=0)return;
+  state.badges.push(name);sfxBadge();
+  var p=document.getElementById('bp');p.textContent='Medalla: '+name+'!';p.classList.add('active');
+  setTimeout(function(){p.classList.remove('active')},3000);
+}
+
+/* --- CARD POPUP --- */
+function showCP(c){document.getElementById('cpT').textContent=c.title;document.getElementById('cpX').textContent=c.text;document.getElementById('cp').classList.add('active');state.score+=25;updHUD()}
+function closeCP(){sfxClick();document.getElementById('cp').classList.remove('active')}
+
+/* --- GAME FLOW --- */
+function startGame(mode){
+  ea();sfxClick();
+  state.mode=mode==='learning'?'learning':'exploration';
+  state.score=0;state.progress=0;state.currentPuzzle=0;state.puzzlesCompleted=[];state.time=0;
+  player.x=100;player.y=300;player.zoom=0;
+  valves.forEach(function(v){v.open=false});
+  pumps.forEach(function(p){p.active=false;p.cd=0});
+  obstructions=[{id:'o1',x:800,y:300,hits:2,maxHits:2,size:25}];
+  kCards.forEach(function(c){c.collected=false});
+  document.getElementById('mainMenu').classList.remove('active');
+  document.getElementById('hud').classList.add('active');
+  document.getElementById('hudTitle').textContent='Vasos Linfaticos';
+  document.getElementById('hudSubtitle').textContent=mode==='learning'?'Nivel 1 de 5 (Guiado)':'Exploracion Libre';
+  updHUD();
+  if(mode==='learning'){
+    showDialogue('Bienvenido Linfoexplorador!','Exploraremos los vasos linfaticos: conductos que transportan la linfa por todo el cuerpo.\n\nWASD para mover, E o clic para interactuar.',[{label:'Comenzar',action:''}]);
+    setTimeout(function(){if(document.getElementById('dlg').classList.contains('active'))hideDlg();startNextP()},5000);
+  }
+  logEvent('start_'+mode);
+}
+
+function startSandbox(){
+  ea();sfxClick();
+  state.mode='sandbox';state.score=0;state.time=0;
+  player.x=400;player.y=300;player.zoom=0;
+  valves.forEach(function(v){v.open=true});
+  pumps.forEach(function(p){p.active=false;p.cd=0});
+  obstructions=[];
+  document.getElementById('mainMenu').classList.remove('active');
+  document.getElementById('hud').classList.add('active');
+  document.getElementById('hudTitle').textContent='Laboratorio Virtual';
+  document.getElementById('hudSubtitle').textContent='Sandbox - Experimenta libremente';
+  document.getElementById('sbp').classList.add('active');
+  updHUD();
+  showDialogue('Laboratorio Virtual','Experimenta libremente. Usa las herramientas del panel derecho para anadir valvulas, bombas, obstrucciones y patogenos.',[{label:'Comenzar',action:''}]);
+  logEvent('start_sandbox');
+}
+
+function goToMenu(){
+  sfxClick();saveUserProgress();
+  state.mode='menu';
+  document.getElementById('hud').classList.remove('active');
+  document.getElementById('sbp').classList.remove('active');
+  document.getElementById('mm').classList.remove('active');
+  document.getElementById('pause').classList.remove('active');
+  document.getElementById('mainMenu').classList.add('active');
+  hideDlg();
+}
+
+function togglePause(){
+  sfxClick();
+  if(state.mode==='paused'){state.mode=state.prevMode||'learning';document.getElementById('pause').classList.remove('active')}
+  else if(state.mode==='learning'||state.mode==='exploration'||state.mode==='sandbox'){state.prevMode=state.mode;state.mode='paused';document.getElementById('pause').classList.add('active')}
+}
+
+function toggleMM(){sfxClick();document.getElementById('mm').classList.toggle('active')}
+
+/* --- SANDBOX --- */
+var sbTool='flow';
+function selTool(t){sbTool=t;document.querySelectorAll('.tb').forEach(function(b){b.classList.toggle('on',b.dataset.t===t)});sfxClick()}
+function clearSB(){sfxClick();valves=[];pumps=[];obstructions=[]}
+function setSpd(v){document.getElementById('spLbl').textContent=v+'x';particles.forEach(function(p){p.spd=(0.02+Math.random()*0.015)*parseFloat(v)})}
+function sbClick(cx2,cy2){
+  var wx=cx2+cam.x,wy=cy2+cam.y;
+  if(sbTool==='valve'){valves.push({id:'v'+(valves.length+1),x:wx,y:wy,open:true,size:20});sfxValve()}
+  else if(sbTool==='pump'){pumps.push({id:'p'+(pumps.length+1),x:wx,y:wy,active:false,cd:0,rad:60,str:1.5});sfxPump()}
+  else if(sbTool==='obstruct'){obstructions.push({id:'o'+(obstructions.length+1),x:wx,y:wy,hits:3,maxHits:3,size:25});sfxBub()}
+  else if(sbTool==='pathogen'){sfxBub();for(var i=0;i<5;i++){var pp=new Particle();pp.t=Math.random();pp.col=C_CORAL;pp.sz=5+Math.random()*3;pp.off=(Math.random()-0.5)*60;particles.push(pp)}}
+}
+
+/* --- QUIZ --- */
+var quizQ=[
+  {q:'Que tipo de vasos transportan la linfa hacia los ganglios?',o:['Vasos aferentes','Vasos eferentes','Capilares sanguineos','Venas linfaticas'],c:0,e:'Los vasos aferentes llevan la linfa sin filtrar hacia el ganglio.'},
+  {q:'Cual es la funcion de las valvulas en los vasos linfaticos?',o:['Producir linfocitos','Impedir el reflujo de la linfa','Filtrar bacterias','Producir anticuerpos'],c:1,e:'Las valvulas semilunares aseguran flujo unidireccional, evitando reflujo.'},
+  {q:'Que celulas presentan antigenos a los linfocitos T?',o:['Eritrocitos','Celulas presentadoras de antigeno (APC)','Plaquetas','Fibroblastos'],c:1,e:'Las celulas dendriticas y macrofagos actuan como APC.'},
+  {q:'El sistema linfatico forma parte del sistema circulatorio.',o:['Verdadero','Falso'],c:0,e:'Si, drena liquido intersticial y lo devuelve a la circulacion.'},
+  {q:'Donde maduran los linfocitos T?',o:['Bazo','Medula osea','Timo','Amigdalas'],c:2,e:'Los linfocitos T maduran en el timo.'},
+  {q:'Que ocurre al obstruir un vaso linfatico principal?',o:['Nada','Se produce edema','Aumenta presion arterial','Se activan plaquetas'],c:1,e:'La obstruccion causa acumulacion de liquido = linfedema.'},
+  {q:'Que organo linfatico filtra la sangre?',o:['Ganglio','Timo','Bazo','Amigdala'],c:2,e:'El bazo filtra sangre, eliminando globulos rojos viejos.'},
+  {q:'La linfa contiene globulos rojos en gran cantidad.',o:['Verdadero','Falso'],c:1,e:'La linfa contiene principalmente linfocitos, no eritrocitos.'}
+];
+var qz={cur:0,score:0,answered:false};
+
+function startQuiz(){
+  state.mode='quiz';document.getElementById('hud').classList.remove('active');document.getElementById('dlg').classList.remove('active');
+  qz={cur:0,score:0,answered:false};
+  document.getElementById('quizS').classList.add('active');
+  document.getElementById('qr').style.display='none';
+  document.getElementById('qn').style.display='none';
+  showQQ();
+}
+function showQQ(){
+  if(qz.cur>=quizQ.length){showQR();return}
+  var q=quizQ[qz.cur];qz.answered=false;
+  document.getElementById('qq').textContent=q.q;
+  document.getElementById('qf').textContent='';
+  document.getElementById('qn').style.display='none';
+  document.getElementById('qpf').style.width=(qz.cur/quizQ.length*100)+'%';
+  document.getElementById('qqs').textContent='Puntuacion: '+qz.score+'/'+quizQ.length;
+  var ad=document.getElementById('qa');ad.innerHTML='';
+  q.o.forEach(function(opt,i){
+    var b=document.createElement('button');b.className='qab';b.textContent=opt;
+    (function(idx){b.onclick=function(){selAns(idx,b)}})(i);
+    ad.appendChild(b);
+  });
+}
+function selAns(idx,btn){
+  if(qz.answered)return;qz.answered=true;
+  var q=quizQ[qz.cur],ok=idx===q.c;
+  document.querySelectorAll('.qab').forEach(function(b){b.classList.add('dis')});
+  if(ok){btn.classList.add('ok');qz.score++;document.getElementById('qf').innerHTML='Correcto! '+q.e;sfxOk()}
+  else{btn.classList.add('no');document.querySelectorAll('.qab')[q.c].classList.add('ok');document.getElementById('qf').innerHTML='Incorrecto. '+q.e;sfxNo()}
+  document.getElementById('qqs').textContent='Puntuacion: '+qz.score+'/'+quizQ.length;
+  document.getElementById('qn').style.display='inline-block';
+}
+function nextQ(){sfxClick();qz.cur++;showQQ()}
+function showQR(){
+  var pct=Math.round(qz.score/quizQ.length*100),msg='';
+  if(pct>=90){msg='Excelente! Dominas los conceptos.';earnBadge('Quiz Expert')}
+  else if(pct>=70)msg='Muy bien! Repasa los puntos fallados.';
+  else if(pct>=50)msg='Aprobado. Repasa el nivel antes de continuar.';
+  else msg='Necesitas repasar. Vuelve al nivel.';
+  document.getElementById('qq').textContent='';document.getElementById('qa').innerHTML='';document.getElementById('qf').innerHTML='';
+  document.getElementById('qn').style.display='none';document.getElementById('qpf').style.width='100%';
+  var rd=document.getElementById('qr');rd.style.display='block';
+  rd.innerHTML='<h3>Resultado: '+qz.score+'/'+quizQ.length+' ('+pct+'%)</h3><p>'+msg+'</p><div style="margin-top:16px"><button class="menuBtn primary" onclick="goToMenu()" style="min-width:160px;padding:10px 20px;font-size:15px">Menu principal</button></div>';
+  state.progress=100;state.score+=qz.score*50;earnBadge('Primer Paso');
+  state.quizResults.push({score:qz.score,total:quizQ.length,pct:pct,date:new Date().toISOString()});
+  saveUserProgress();
+  logEvent('quiz_result',{score:qz.score,total:quizQ.length,pct:pct});
+}
+
+/* --- SETTINGS --- */
+function showSettings(){sfxClick();document.getElementById('settings').classList.add('active')}
+function hideSettings(){sfxClick();document.getElementById('settings').classList.remove('active')}
+
+/* --- ANALYTICS LOG --- */
+function logEvent(type,data){
+  if(!currentUser)return;
+  var db=getDB();
+  if(!db.analytics[currentUser.name])db.analytics[currentUser.name]={};
+  if(!db.analytics[currentUser.name].events)db.analytics[currentUser.name].events=[];
+  db.analytics[currentUser.name].events.push({type:type,data:data||{},time:new Date().toISOString()});
+  saveDB(db);
+}
+
+/* --- MAIN LOOP --- */
+var lastT=0;
+function loop(ts){
+  var dt=Math.min((ts-lastT)/1000,0.05);lastT=ts;state.time+=dt;
+  cx.clearRect(0,0,W(),H());
+  if(state.mode==='menu'){drawMenuBG()}
+  else if(state.mode==='paused'){drawScene(dt)}
+  else if(state.mode!=='quiz'){
+    updPlayer(dt);updCam();
+    pumps.forEach(function(p){if(p.cd>0)p.cd-=dt;if(p.cd<=0)p.active=false});
+    updParts(dt);
+    drawScene(dt);drawMM();
+  }
+  requestAnimationFrame(loop);
+}
+function drawMenuBG(){
+  var g=cx.createRadialGradient(W()/2,H()/2,0,W()/2,H()/2,W()*0.6);
+  g.addColorStop(0,'#F7F7F9');g.addColorStop(0.5,'#E8F0E8');g.addColorStop(1,'#D0E8D0');
+  cx.fillStyle=g;cx.fillRect(0,0,W(),H());
+  for(var i=0;i<30;i++){
+    var x=(Math.sin(state.time*0.3+i*1.7)*0.5+0.5)*W();
+    var y=(Math.cos(state.time*0.2+i*2.3)*0.5+0.5)*H();
+    var sz=2+Math.sin(i)*2;
+    cx.fillStyle=i%3===0?C_GREEN:i%3===1?C_AQUA:C_FLOW;
+    cx.globalAlpha=0.15+Math.sin(state.time+i)*0.1;
+    cx.beginPath();cx.arc(x,y,sz,0,Math.PI*2);cx.fill();
+  }
+  cx.globalAlpha=1;
+}
+function drawScene(dt){
+  cx.save();
+  var zl=[1,1.3,1.8,2.5],z=zl[player.zoom];
+  cx.translate(W()/2,H()/2);cx.scale(z,z);cx.translate(-W()/2,-H()/2);
+  drawBG();drawVW();drawParts();
+  valves.forEach(function(v){drawValve(v)});
+  pumps.forEach(function(p){drawPump(p)});
+  obstructions.forEach(function(o){drawObs(o)});
+  kCards.forEach(function(c){drawKCard(c)});
+  if(state.mode!=='quiz')drawPlayer2();
+  cx.restore();
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
