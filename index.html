@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linfovia: Viaje por la Red Linfatica</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#F7F7F9;font-family:'Segoe UI',Inter,system-ui,sans-serif;overflow:hidden}
+canvas{display:block;width:100vw;height:100vh}
+.ov{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;z-index:100}
+.ov.on{display:flex}
+.ov>*{pointer-events:all}
+#auth{background:linear-gradient(135deg,#F7F7F9,#EADFF7,#BEE7E8);flex-direction:column;gap:12px}
+#auth.on{display:flex}
+.ac{background:#fff;border-radius:16px;padding:24px;width:min(400px,90%);box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.ac h2{font-size:22px;color:#A3D9A5;margin-bottom:4px}
+.ac .sub{font-size:13px;color:#888;margin-bottom:16px}
+.af{display:flex;flex-direction:column;gap:10px}
+.af input,.af select{padding:10px 14px;border:2px solid #EDEDED;border-radius:10px;font-size:15px;outline:none}
+.af input:focus,.af select:focus{border-color:#7FD6B8}
+.af button{padding:12px;border:2px solid #A3D9A5;border-radius:10px;background:rgba(163,217,165,0.2);cursor:pointer;font-size:16px;color:#2d6a2f;font-weight:600;margin-top:4px}
+.af button:hover{background:rgba(163,217,165,0.4)}
+.af .alt{text-align:center;font-size:13px;color:#888;margin-top:8px;cursor:pointer}
+.af .alt:hover{color:#A3D9A5}
+#menu{background:linear-gradient(135deg,#F7F7F9,#EADFF7,#BEE7E8);flex-direction:column;gap:12px}
+#menu.on{display:flex}
+#menu h1{font-size:clamp(36px,6vw,72px);color:#A3D9A5;text-shadow:0 2px 20px rgba(163,217,165,0.3);letter-spacing:4px}
+#menu h2{font-size:clamp(14px,2vw,22px);color:#7FD6B8;letter-spacing:2px;margin-top:-8px}
+.mb{min-width:280px;padding:14px 32px;font-size:18px;border:2px solid;border-radius:12px;cursor:pointer;transition:all .15s;font-weight:600;background:rgba(255,255,255,0.7)}
+.mb:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+.mb.pri{border-color:#A3D9A5;color:#2d6a2f;background:rgba(163,217,165,0.2)}
+.mb.sec{border-color:#BEE7E8;color:#3a7a7c;background:rgba(190,231,232,0.2)}
+.mb.sml{min-width:200px;padding:10px 24px;font-size:15px;border-color:#EDEDED;color:#666}
+.ms{height:12px}
+#hud{position:fixed;top:0;left:0;width:100%;padding:8px 16px;display:none;align-items:center;justify-content:space-between;background:rgba(247,247,249,0.9);backdrop-filter:blur(8px);border-bottom:1px solid #EDEDED;z-index:50}
+#hud.on{display:flex}
+.hl{display:flex;align-items:center;gap:16px}
+.ht{font-size:16px;font-weight:700;color:#A3D9A5}
+.hs{font-size:12px;color:#888}
+.hp{width:200px;height:6px;background:#EDEDED;border-radius:3px;overflow:hidden}
+.hf{height:100%;background:linear-gradient(90deg,#A3D9A5,#7FD6B8);border-radius:3px;transition:width .5s}
+.hsc{font-size:14px;color:#7FD6B8;font-weight:600}
+.hr{display:flex;gap:8px}
+.hb{padding:6px 12px;border:1px solid #EDEDED;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#666}
+.hb:hover{background:#EDEDED}
+#dlg{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);width:min(600px,90%);background:rgba(255,245,230,0.95);border-radius:16px;border:2px solid #EADFF7;padding:24px;display:none;z-index:60;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+#dlg.on{display:block}
+.dt{font-size:20px;font-weight:700;color:#A3D9A5;margin-bottom:8px}
+.dx{font-size:15px;color:#444;line-height:1.6;margin-bottom:16px;white-space:pre-line}
+.dcc{display:flex;flex-direction:column;gap:8px}
+.dbb{padding:10px 16px;border:2px solid #BEE7E8;border-radius:10px;background:rgba(190,231,232,0.15);cursor:pointer;font-size:15px;color:#3a7a7c;text-align:center}
+.dbb:hover{background:rgba(190,231,232,0.4);border-color:#7FD6B8}
+#ip{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#fff;padding:8px 20px;border-radius:20px;font-size:14px;display:none;z-index:55;white-space:nowrap}
+#ip.on{display:block}
+#tz{position:fixed;bottom:50px;left:10px;background:rgba(0,0,0,0.5);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;z-index:55;display:none}
+#tz.on{display:block}
+#mm{position:fixed;bottom:50px;right:10px;width:200px;height:100px;background:rgba(247,247,249,0.9);border:1px solid #EDEDED;border-radius:8px;display:none;z-index:55;overflow:hidden}
+#mm.on{display:block}
+#mc{width:100%;height:100%}
+#sbp{position:fixed;top:50px;right:10px;background:rgba(255,245,230,0.95);border-radius:12px;border:1px solid #EDEDED;padding:16px;display:none;z-index:60;width:220px;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+#sbp.on{display:block}
+#sbp h3{font-size:14px;color:#A3D9A5;margin-bottom:12px}
+.tb{display:block;width:100%;padding:8px 12px;margin-bottom:6px;border:1px solid #EDEDED;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;text-align:left}
+.tb:hover{background:rgba(163,217,165,0.2);border-color:#A3D9A5}
+.tb.on{background:rgba(163,217,165,0.3);border-color:#7FD6B8;font-weight:600}
+.spc{margin-top:12px;display:flex;align-items:center;gap:8px}
+.spc label{font-size:12px;color:#666}
+.spc input[type=range]{flex:1}
+#pause{background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);flex-direction:column;gap:12px}
+#pause.on{display:flex}
+#pause h2{font-size:32px;color:#fff;margin-bottom:16px}
+#pause .mb{background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.4)}
+#settings{background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);flex-direction:column;gap:12px}
+#settings.on{display:flex}
+.sc2{background:#F7F7F9;border-radius:16px;padding:24px;width:min(500px,90%);max-height:80vh;overflow-y:auto}
+.sc2 h2{font-size:22px;color:#A3D9A5;margin-bottom:16px}
+.sr{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #EDEDED}
+.sr label{font-size:14px;color:#444}
+#bp{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-100px);background:rgba(163,217,165,0.95);color:#fff;padding:12px 24px;border-radius:12px;font-size:16px;font-weight:600;z-index:70;transition:transform .5s ease;white-space:nowrap}
+#bp.on{transform:translateX(-50%) translateY(0)}
+#cp{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.97);border-radius:16px;border:2px solid #EADFF7;padding:24px;width:min(450px,90%);z-index:65;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+#cp.on{display:block}
+#cp .ct{font-size:18px;font-weight:700;color:#A3D9A5;margin-bottom:8px}
+#cp .cx{font-size:14px;color:#444;line-height:1.7;margin-bottom:16px}
+#ccb{padding:8px 20px;border:2px solid #7FD6B8;border-radius:8px;background:rgba(127,214,184,0.2);cursor:pointer;font-size:14px;color:#2d8a6e;font-weight:600}
+#qz{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#F7F7F9,#EADFF7);display:none;flex-direction:column;align-items:center;gap:12px;padding:24px;overflow-y:auto;z-index:90}
+#qz.on{display:flex}
+.qh{text-align:center;margin-bottom:8px}
+.qt{font-size:24px;font-weight:700;color:#A3D9A5}
+.qp{width:400px;max-width:80%;height:8px;background:#EDEDED;border-radius:4px;overflow:hidden;margin:8px auto}
+.qf2{height:100%;background:#7FD6B8;border-radius:4px;transition:width .3s}
+.qsc{font-size:16px;color:#7FD6B8;font-weight:600}
+.qq{font-size:20px;font-weight:600;color:#333;text-align:center;max-width:600px;line-height:1.5;margin:16px 0}
+.qa{display:flex;flex-direction:column;gap:10px;width:min(500px,90%)}
+.qab{padding:14px 20px;border:2px solid #EDEDED;border-radius:12px;background:#fff;cursor:pointer;font-size:16px;transition:all .15s;text-align:left}
+.qab:hover{border-color:#7FD6B8;background:rgba(127,214,184,0.15)}
+.qab.ok{border-color:#A3D9A5;background:rgba(163,217,165,0.3);color:#2d6a2f}
+.qab.no{border-color:#E64A4A;background:rgba(230,74,74,0.15);color:#c0392b}
+.qab.dis{pointer-events:none;opacity:0.6}
+.qfd{font-size:14px;color:#555;text-align:center;max-width:500px;line-height:1.5;min-height:50px;padding:12px;background:rgba(255,255,255,0.5);border-radius:10px}
+.qn{padding:12px 32px;border:2px solid #7FD6B8;border-radius:10px;background:rgba(127,214,184,0.2);cursor:pointer;font-size:16px;color:#2d8a6e;font-weight:600;display:none}
+.qr2{text-align:center;padding:20px}
+.qr2 h3{font-size:28px;color:#A3D9A5;margin-bottom:8px}
+.qr2 p{font-size:16px;color:#555;line-height:1.6}
+#anl{background:linear-gradient(135deg,#F7F7F9,#EADFF7);flex-direction:column;gap:12px;padding:24px;overflow-y:auto}
+#anl.on{display:flex}
+.anc{background:#fff;border-radius:16px;padding:24px;width:min(900px,95%);max-height:85vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.anc h2{font-size:22px;color:#A3D9A5;margin-bottom:16px}
+.anc table{width:100%;border-collapse:collapse;font-size:14px}
+.anc th{background:#F7F7F9;padding:10px;text-align:left;border-bottom:2px solid #EDEDED;color:#555}
+.anc td{padding:10px;border-bottom:1px solid #EDEDED;color:#333}
+.anc .st{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.anc .scd{background:#F7F7F9;border-radius:10px;padding:16px;text-align:center}
+.anc .scd .vl{font-size:28px;font-weight:700;color:#A3D9A5}
+.anc .scd .lb{font-size:12px;color:#888;margin-top:4px}
+.ebtn{padding:10px 20px;border:2px solid #7FD6B8;border-radius:10px;background:rgba(127,214,184,0.2);cursor:pointer;font-size:14px;color:#2d8a6e;font-weight:600;margin-top:16px;margin-right:8px}
+</style>
+</head>
+<body>
+<canvas id="gc"></canvas>
+<div id="auth" class="ov on">
+  <div class="ac">
+    <h2>Bienvenido a Linfovia</h2>
+    <div class="sub">Inicia sesion o registrate para comenzar</div>
+    <div class="af">
+      <input id="aU" placeholder="Nombre de usuario" autocomplete="off">
+      <input id="aP" type="password" placeholder="Contrasena">
+      <select id="aR"><option value="student">Estudiante</option><option value="teacher">Docente</option></select>
+      <button id="authBtn" onclick="doAuth()">Entrar</button>
+      <div class="alt" onclick="document.getElementById('ri').style.display=document.getElementById('ri').style.display==='none'?'block':'none'">Como funciona?</div>
+    </div>
+    <div id="ri" style="display:none;margin-top:12px;padding:12px;background:#F7F7F9;border-radius:10px;font-size:13px;color:#555;line-height:1.5">
+      <b>Estudiantes:</b> Elijan nombre y contrasena. Su progreso se guarda automaticamente.<br>
+      <b>Docentes:</b> Seleccionen "Docente" para ver el panel de analytics con el progreso de todos.
+    </div>
+  </div>
+</div>
+<div id="menu" class="ov">
+  <h1>LINFOVIA</h1>
+  <h2>Viaje por la Red Linfatica</h2>
+  <div class="ms"></div>
+  <button class="mb pri" onclick="startGame('learning')">Modo Aprendizaje</button>
+  <button class="mb sec" onclick="startGame('exploration')">Modo Exploracion</button>
+  <button class="mb sec" onclick="startSandbox()">Laboratorio Virtual</button>
+  <div class="ms"></div>
+  <button class="mb sml" onclick="showSet()">Configuracion</button>
+  <button class="mb sml" onclick="goAnl()">Panel Docente</button>
+  <div class="ms"></div>
+  <div id="uD" style="font-size:13px;color:#888"></div>
+  <button class="mb sml" onclick="doLogout()" style="min-width:160px;font-size:13px;padding:8px 16px">Cerrar sesion</button>
+</div>
+<div id="hud">
+  <div class="hl">
+    <div><div class="ht" id="huT">Vasos Linfaticos</div><div class="hs" id="huS">Nivel 1 de 5</div></div>
+    <div class="hp"><div class="hf" id="huF" style="width:0%"></div></div>
+    <div class="hsc" id="huC">Puntos: 0</div>
+  </div>
+  <div class="hr">
+    <button class="hb" onclick="togMM()">Mapa</button>
+    <button class="hb" onclick="togPau()">Pausa</button>
+    <button class="hb" onclick="goMenu()">Menu</button>
+  </div>
+</div>
+<div id="dlg">
+  <div class="dt" id="dgT"></div>
+  <div class="dx" id="dgX"></div>
+  <div class="dcc" id="dgC"></div>
+</div>
+<div id="ip">Presiona E para interactuar</div>
+<div id="tz">Zoom: x1</div>
+<div id="mm"><canvas id="mc"></canvas></div>
+<div id="sbp">
+  <h3>Herramientas</h3>
+  <button class="tb" data-t="flow" onclick="selT('flow')">Control de flujo</button>
+  <button class="tb" data-t="valve" onclick="selT('valve')">Valvula</button>
+  <button class="tb" data-t="pump" onclick="selT('pump')">Bomba</button>
+  <button class="tb" data-t="obstruct" onclick="selT('obstruct')">Obstruccion</button>
+  <button class="tb" data-t="pathogen" onclick="selT('pathogen')">Patogeno</button>
+  <button class="tb" data-t="clear" onclick="clrSB()">Limpiar</button>
+  <div class="spc"><label>Vel:</label><input type="range" min="0.25" max="3" step="0.25" value="1" oninput="setSpd(this.value)"><span id="spL">1x</span></div>
+</div>
+<div id="pause" class="ov"><h2>Pausa</h2><button class="mb" onclick="togPau()">Continuar</button><button class="mb" onclick="goMenu()">Menu</button></div>
+<div id="settings" class="ov"><div class="sc2"><h2>Configuracion</h2>
+  <div class="sr"><label>Modo color</label><select onchange="stgs.cb=this.value"><option value="default">Normal</option><option value="protanopia">Protanopia</option><option value="deuteranopia">Deuteranopia</option><option value="tritanopia">Tritanopia</option></select></div>
+  <div class="sr"><label>Texto</label><input type="range" min="0.75" max="1.5" step="0.25" value="1" oninput="document.body.style.fontSize=(14*parseFloat(this.value))+'px'"></div>
+  <button class="mb sml" onclick="hideSet()" style="margin-top:16px">Cerrar</button>
+</div></div>
+<div id="bp">Medalla!</div>
+<div id="cp"><div class="ct" id="cpT"></div><div class="cx" id="cpX"></div><button id="ccb" onclick="closeCP()">Cerrar</button></div>
+<div id="qz">
+  <div class="qh"><div class="qt">Evaluacion</div><div class="qp"><div class="qf2" id="qF" style="width:0%"></div></div><div class="qsc" id="qS">0/0</div></div>
+  <div class="qq" id="qQ"></div>
+  <div class="qa" id="qA"></div>
+  <div class="qfd" id="qD"></div>
+  <button class="qn" id="qN" onclick="nextQ()">Siguiente</button>
+  <div class="qr2" id="qR" style="display:none"></div>
+</div>
+<div id="anl" class="ov"><div class="anc" id="anC"></div></div>
+
+<script>
+/* === AUDIO === */
+var AC=null;
+function eA(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)()}
+function tn(f,d,t,v){eA();var o=AC.createOscillator(),g=AC.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.12,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}
+function sC(){tn(800,.08)}
+function sO(){tn(523,.15);setTimeout(function(){tn(659,.15)},100);setTimeout(function(){tn(784,.2)},200)}
+function sN(){tn(200,.3,'square',.07)}
+function sB(){tn(600+Math.random()*400,.1,'sine',.05)}
+function sU(){[523,659,784,1047].forEach(function(f,i){setTimeout(function(){tn(f,.2,'sine',.1)},i*80)})}
+function sG(){[784,988,1175,1319,1568].forEach(function(f,i){setTimeout(function(){tn(f,.3,'sine',.08)},i*120)})}
+function sV(){tn(300,.15,'triangle',.08)}
+function sP(){tn(150,.3,'sawtooth',.05)}
+
+/* === COLORS === */
+var GR='#A3D9A5',AQ='#BEE7E8',LV='#EADFF7',CR='#FFF5E6',WH='#F7F7F9',GY='#EDEDED',CO='#FFB3A7',FL='#7FD6B8',RD='#E64A4A',DK='#333';
+
+/* === CANVAS === */
+var cv=document.getElementById('gc'),c=cv.getContext('2d');
+var mv=document.getElementById('mc'),mx2=mv.getContext('2d');
+function rs(){cv.width=window.innerWidth;cv.height=window.innerHeight;mv.width=200;mv.height=100}
+rs();window.addEventListener('resize',rs);
+
+/* === DATA === */
+function gU(){try{return JSON.parse(localStorage.getItem('lv_u'))||{}}catch(e){return{}}}
+function sU(u){localStorage.setItem('lv_u',JSON.stringify(u))}
+function gD(){try{return JSON.parse(localStorage.getItem('lv_d'))||{u:[],s:[],a:{}}}catch(e){return{u:[],s:[],a:{}}}}
+function sD(d){localStorage.setItem('lv_d',JSON.stringify(d))}
+
+/* === AUTH === */
+var cur=null,stgs={cb:'default',sub:true};
+function doAuth(){
+  eA();sC();
+  var u=document.getElementById('aU').value.trim(),p=document.getElementById('aP').value.trim(),r=document.getElementById('aR').value;
+  if(!u||!p){alert('Ingresa usuario y contrasena');return}
+  var us=gU();
+  if(us[u]&&us[u].p!==p){alert('Contrasena incorrecta');return}
+  if(!us[u]){us[u]={p:p,r:r,c:new Date().toISOString()};sU(us)}
+  cur={name:u,role:us[u].r,data:us[u]};
+  var db=gD();db.s.push({u:u,t:new Date().toISOString(),a:'login'});sD(db);
+  document.getElementById('auth').classList.remove('on');
+  document.getElementById('menu').classList.add('on');
+  document.getElementById('uD').textContent='Usuario: '+u;
+}
+function doLogout(){
+  sC();
+  if(cur){var db=gD();db.s.push({u:cur.name,t:new Date().toISOString(),a:'logout'});sD(db);saveProg()}
+  cur=null;
+  document.getElementById('menu').classList.remove('on');
+  document.getElementById('auth').classList.add('on');
+  goMenu();
+}
+
+/* === STATE === */
+var st={mode:'menu',sc:0,pr:0,bd:[],cd:{},tm:0,cp:0,pc:[],qr:[]};
+
+/* === PLAYER === */
+var pl={x:100,y:300,sp:180,sz:16,vx:0,vy:0,zm:0,fc:{x:1,y:0},nr:null};
+
+/* === LEVEL === */
+var LB={w:1600,h:800};
+var VP=[{x:50,y:350},{x:200,y:300},{x:350,y:250},{x:500,y:280},{x:650,y:250},{x:800,y:300},{x:950,y:280},{x:1100,y:350},{x:1200,y:400},{x:1350,y:380},{x:1500,y:350}];
+var VW=[[{x:30,y:310},{x:200,y:260},{x:350,y:210},{x:500,y:240},{x:650,y:210},{x:800,y:260},{x:950,y:240},{x:1100,y:310},{x:1200,y:360},{x:1350,y:340},{x:1520,y:310}],[{x:30,y:390},{x:200,y:340},{x:350,y:290},{x:500,y:320},{x:650,y:290},{x:800,y:340},{x:950,y:320},{x:1100,y:390},{x:1200,y:440},{x:1350,y:420},{x:1520,y:390}]];
+var va=[{id:'v1',x:350,y:250,o:false,s:20},{id:'v2',x:650,y:250,o:false,s:20},{id:'v3',x:950,y:280,o:false,s:20}];
+var po=[{id:'p1',x:450,y:360,a:false,cd:0},{id:'p2',x:750,y:360,a:false,cd:0},{id:'p3',x:1050,y:370,a:false,cd:0}];
+var ob=[{id:'o1',x:800,y:300,h:2,mh:2,s:25}];
+var kc=[{id:'c1',x:250,y:200,t:'Estructura de los Vasos',x2:'Los vasos linfaticos son conductos de pared fina con valvulas internas. Transportan linfa desde los tejidos.',col:false},{id:'c2',x:550,y:180,t:'Valvulas Linfaticas',x2:'Las valvulas semilunares aseguran flujo unidireccional, evitando reflujo.',col:false},{id:'c3',x:900,y:200,t:'Bombas Musculares',x2:'La contraccion muscular comprime los vasos, impulsando la linfa.',col:false}];
+
+/* === PATH === */
+var _pL=0,_sL=[];
+function cP(){_pL=0;_sL=[];for(var i=1;i<VP.length;i++){var dx=VP[i].x-VP[i-1].x,dy=VP[i].y-VP[i-1].y,l=Math.sqrt(dx*dx+dy*dy);_sL.push(l);_pL+=l}}
+cP();
+function pT(t){t=Math.max(0,Math.min(1,t));var g=t*_pL,a=0;for(var i=0;i<_sL.length;i++){if(a+_sL[i]>=g){var f=(g-a)/_sL[i];return{x:VP[i].x+(VP[i+1].x-VP[i].x)*f,y:VP[i].y+(VP[i+1].y-VP[i].y)*f}}a+=_sL[i]}return{x:VP[VP.length-1].x,y:VP[VP.length-1].y}}
+function gTX(x){var bt=0,bd=1e9;for(var t=0;t<=1;t+=.005){var d=Math.abs(pT(t).x-x);if(d<bd){bd=d;bt=t}}return bt}
+
+/* === PARTICLES === */
+var pts=[];
+function Pt(){this.t=Math.random();this.sp=.02+Math.random()*.015;this.of=(Math.random()-.5)*40;this.sz=3+Math.random()*4;this.al=.4+Math.random()*.4;this.co=Math.random()>.5?GR:AQ}
+for(var i=0;i<80;i++)pts.push(new Pt());
+function uP(dt){pts.forEach(function(p){var m=1;va.forEach(function(v){if(!v.o){var vt=gTX(v.x);if(Math.abs(p.t-vt)<.03)m=.05}});var ps=pT(p.t);po.forEach(function(pp){if(pp.a){var d=Math.hypot(ps.x-pp.x,ps.y-pp.y);if(d<60)m+=(1-d/60)*1.5}});ob.forEach(function(o){var d=Math.hypot(ps.x-o.x,ps.y-o.y);if(d<o.s+15)m*=.2});p.t+=p.sp*dt*m;if(p.t>1){p.t=0;p.co=Math.random()>.5?GR:AQ}})}
+
+/* === CAMERA === */
+var cm={x:0,y:0};
+function uC(){var zl=[1,1.3,1.8,2.5],z=zl[pl.zm],tx=pl.x-cv.width/(2*z),ty=pl.y-cv.height/(2*z);cm.x+=(tx-cm.x)*.1;cm.y+=(ty-cm.y)*.1}
+
+/* === INPUT === */
+var ky={};
+window.addEventListener('keydown',function(e){ky[e.key.toLowerCase()]=true;if(e.key==='Escape')togPau();if(e.key.toLowerCase()==='e')tryI();if(e.key.toLowerCase()==='q'){pl.zm=Math.min(3,pl.zm+1);uZ()}if(e.key.toLowerCase()==='x'){pl.zm=Math.max(0,pl.zm-1);uZ()}if(e.key.toLowerCase()==='m')togMM()});
+window.addEventListener('keyup',function(e){ky[e.key.toLowerCase()]=false});
+cv.addEventListener('mousedown',function(e){if(st.mode==='sandbox')sbC(e.clientX,e.clientY);else tC(e.clientX,e.clientY)});
+function tC(cx2,cy2){if(st.mode==='menu'||st.mode==='quiz')return;var wx=cx2+cm.x,wy=cy2+cm.y;va.forEach(function(v){if(Math.hypot(wx-v.x,wy-v.y)<v.s+10){v.o=!v.o;sV();ch1()}});po.forEach(function(p){if(Math.hypot(wx-p.x,wy-p.y)<30&&p.cd<=0){p.a=true;p.cd=2;sP();ch2()}});for(var i=0;i<ob.length;i++){var o=ob[i];if(Math.hypot(wx-o.x,wy-o.y)<o.s+10){o.h--;sB();if(o.h<=0){ob.splice(i,1);ch3()}break}}kc.forEach(function(k){if(!k.col&&Math.hypot(wx-k.x,wy-k.y)<30){k.col=true;st.cd[k.id]=true;shCP(k);sU2()}})}
+function tryI(){var nr=null,md=80;va.forEach(function(v){var d=Math.hypot(pl.x-v.x,pl.y-v.y);if(d<md){md=d;nr={t:'v',r:v}}});if(!nr)po.forEach(function(p){if(p.cd<=0){var d=Math.hypot(pl.x-p.x,pl.y-p.y);if(d<md){md=d;nr={t:'p',r:p}}}});if(!nr)ob.forEach(function(o){var d=Math.hypot(pl.x-o.x,pl.y-o.y);if(d<md){md=d;nr={t:'o',r:o}}});if(!nr)kc.forEach(function(k){if(!k.col){var d=Math.hypot(pl.x-k.x,pl.y-k.y);if(d<md){md=d;nr={t:'k',r:k}}}});if(!nr)return;sC();if(nr.t==='v'){nr.r.o=!nr.r.o;sV();ch1()}else if(nr.t==='p'){if(nr.r.cd<=0){nr.r.a=true;nr.r.cd=2;sP();ch2()}}else if(nr.t==='o'){nr.r.h--;sB();if(nr.r.h<=0){var idx=ob.indexOf(nr.r);if(idx>=0)ob.splice(idx,1);ch3()}}else if(nr.t==='k'){if(!nr.r.col){nr.r.col=true;st.cd[nr.r.id]=true;shCP(nr.r);sU2()}}}
+
+/* === PLAYER === */
+function uPl(dt){if(st.mode!=='learning'&&st.mode!=='exploration'&&st.mode!=='sandbox')return;var dx=0,dy=0;if(ky.w||ky.arrowup)dy-=1;if(ky.s||ky.arrowdown)dy+=1;if(ky.a||ky.arrowleft)dx-=1;if(ky.d||ky.arrowright)dx+=1;if(dx||dy){var l=Math.sqrt(dx*dx+dy*dy);dx/=l;dy/=l;pl.fc={x:dx,y:dy}}pl.vx+=dx*pl.sp*dt*5;pl.vy+=dy*pl.sp*dt*5;pl.vx*=.85;pl.vy*=.85;pl.x+=pl.vx*dt;pl.y+=pl.vy*dt;pl.x=Math.max(30,Math.min(LB.w-30,pl.x));pl.y=Math.max(30,Math.min(LB.h-30,pl.y));var nr=null;va.forEach(function(v){if(Math.hypot(pl.x-v.x,pl.y-v.y)<50)nr={t:'v',r:v}});if(!nr)po.forEach(function(p){if(p.cd<=0&&Math.hypot(pl.x-p.x,pl.y-p.y)<50)nr={t:'p',r:p}});if(!nr)ob.forEach(function(o){if(Math.hypot(pl.x-o.x,pl.y-o.y)<50)nr={t:'o',r:o}});if(!nr)kc.forEach(function(k){if(!k.col&&Math.hypot(pl.x-k.x,pl.y-k.y)<50)nr={t:'k',r:k}});pl.nr=nr;var pr=document.getElementById('ip');if(nr){pr.classList.add('on');if(nr.t==='k')pr.textContent='E para leer';else if(nr.t==='v')pr.textContent=nr.r.o?'Valvula abierta (E cerrar)':'Valvula cerrada (E abrir)';else if(nr.t==='p')pr.textContent=nr.r.cd>0?'Enfriamiento...':'Bomba (E activar)';else if(nr.t==='o')pr.textContent='Obstruccion ('+nr.r.h+' golpes)';else pr.textContent='E para interactuar'}else{pr.classList.remove('on')}}
+
+/* === DRAW === */
+function dBG(){var g=c.createLinearGradient(0,0,0,cv.height);g.addColorStop(0,'#F0F5F0');g.addColorStop(.5,'#F7F7F9');g.addColorStop(1,'#E8F0E8');c.fillStyle=g;c.fillRect(0,0,cv.width,cv.height);c.strokeStyle='rgba(200,220,200,0.12)';c.lineWidth=1;var gs=60,ox=-(cm.x%gs),oy=-(cm.y%gs);for(var x=ox;x<cv.width;x+=gs){c.beginPath();c.moveTo(x,0);c.lineTo(x,cv.height);c.stroke()}for(var y=oy;y<cv.height;y+=gs){c.beginPath();c.moveTo(0,y);c.lineTo(cv.width,y);c.stroke()}}
+function dVW(){c.strokeStyle='#C8E8D8';c.lineWidth=40;c.lineCap='round';c.lineJoin='round';VW.forEach(function(w){c.beginPath();w.forEach(function(p,i){var sx=p.x-cm.x,sy=p.y-cm.y;i===0?c.moveTo(sx,sy):c.lineTo(sx,sy)});c.stroke()});c.strokeStyle='rgba(200,232,216,0.3)';c.lineWidth=36;VW.forEach(function(w){c.beginPath();w.forEach(function(p,i){var sx=p.x-cm.x,sy=p.y-cm.y;i===0?c.moveTo(sx,sy):c.lineTo(sx,sy)});c.stroke()})}
+function dVa(v){var sx=v.x-cm.x,sy=v.y-cm.y;if(sx<-50||sx>cv.width+50||sy<-50||sy>cv.height+50)return;c.save();c.translate(sx,sy);c.fillStyle=v.o?FL:RD;c.globalAlpha=.8;c.beginPath();c.ellipse(-v.s*.3,0,v.s*.4,v.s*.8,0,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(v.s*.3,0,v.s*.4,v.s*.8,0,0,Math.PI*2);c.fill();c.globalAlpha=1;c.fillStyle=DK;c.font='11px sans-serif';c.textAlign='center';c.fillText(v.o?'ABIERTA':'CERRADA',0,-v.s-5);c.fillText(v.id,0,v.s+15);c.restore()}
+function dPo(p){var sx=p.x-cm.x,sy=p.y-cm.y;if(sx<-50||sx>cv.width+50||sy<-50||sy>cv.height+50)return;c.save();c.translate(sx,sy);c.fillStyle=p.a?FL:AQ;c.globalAlpha=p.a?.9:.5;c.beginPath();c.arc(0,0,18,0,Math.PI*2);c.fill();c.globalAlpha=1;c.fillStyle=DK;c.font='14px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(p.a?'>':'P',0,1);if(p.cd>0){c.fillStyle=DK;c.font='10px sans-serif';c.fillText(p.cd.toFixed(1)+'s',0,28)}else{c.fillStyle='#888';c.font='10px sans-serif';c.fillText(p.id,0,28)}c.restore()}
+function dOb(o){var sx=o.x-cm.x,sy=o.y-cm.y;if(sx<-50||sx>cv.width+50||sy<-50||sy>cv.height+50)return;c.save();c.translate(sx,sy);c.fillStyle=CO;c.globalAlpha=.7+(o.h/o.mh)*.3;c.beginPath();for(var i=0;i<8;i++){var a=(i/8)*Math.PI*2,r=o.s*(.7+Math.sin(i*2.5)*.3);i===0?c.moveTo(Math.cos(a)*r,Math.sin(a)*r):c.lineTo(Math.cos(a)*r,Math.sin(a)*r)}c.closePath();c.fill();c.globalAlpha=1;c.fillStyle=DK;c.font='11px sans-serif';c.textAlign='center';c.fillText(o.h+'/'+o.mh,0,o.s+15);c.restore()}
+function dKc(k){if(k.col)return;var sx=k.x-cm.x,sy=k.y-cm.y;if(sx<-50||sx>cv.width+50||sy<-50||sy>cv.height+50)return;c.save();c.translate(sx,sy);var pulse=Math.sin(st.tm*3)*.15+.6;c.fillStyle=LV;c.globalAlpha=pulse;c.beginPath();c.arc(0,0,22,0,Math.PI*2);c.fill();c.globalAlpha=1;c.fillStyle='#fff';c.strokeStyle=LV;c.lineWidth=2;c.beginPath();c.moveTo(-7,-9);c.lineTo(7,-9);c.quadraticCurveTo(10,-9,10,-6);c.lineTo(10,9);c.quadraticCurveTo(10,12,7,12);c.lineTo(-7,12);c.quadraticCurveTo(-10,12,-10,9);c.lineTo(-10,-6);c.quadraticCurveTo(-10,-9,-7,-9);c.closePath();c.fill();c.stroke();c.fillStyle=GR;c.font='11px sans-serif';c.textAlign='center';c.fillText('+',0,4);c.restore()}
+function dPl(){var px=pl.x-cm.x,py=pl.y-cm.y,sz=pl.sz;c.save();c.translate(px,py);c.fillStyle='rgba(0,0,0,0.08)';c.beginPath();c.ellipse(0,sz+2,sz*.8,4,0,0,Math.PI*2);c.fill();c.fillStyle=GR;c.beginPath();c.arc(0,0,sz,0,Math.PI*2);c.fill();c.fillStyle=FL;c.globalAlpha=.4;c.beginPath();c.arc(-3,-3,sz*.6,0,Math.PI*2);c.fill();c.globalAlpha=1;var ex=pl.fc.x*3,ey=pl.fc.y*3;c.fillStyle='#fff';c.beginPath();c.ellipse(-4+ex,-4+ey,4.5,4.5,0,0,Math.PI*2);c.fill();c.beginPath();c.ellipse(4+ex,-4+ey,4.5,4.5,0,0,Math.PI*2);c.fill();c.fillStyle=DK;c.beginPath();c.arc(-3+ex*1.2,-4+ey*1.2,2.2,0,Math.PI*2);c.fill();c.beginPath();c.arc(5+ex*1.2,-4+ey*1.2,2.2,0,Math.PI*2);c.fill();c.strokeStyle=DK;c.lineWidth=1.5;c.beginPath();c.arc(0,2,4.5,.1*Math.PI,.9*Math.PI);c.stroke();c.fillStyle=LV;c.beginPath();c.moveTo(sz-2+2,-5);c.lineTo(sz+5,-5);c.quadraticCurveTo(sz+7,-5,sz+7,-3);c.lineTo(sz+7,5);c.quadraticCurveTo(sz+7,7,sz+5,7);c.lineTo(sz-2,7);c.quadraticCurveTo(sz-2,5,sz-2,3);c.closePath();c.fill();c.restore()}
+function dPt(){pts.forEach(function(p){var ps=pT(p.t),x=ps.x-cm.x,y=ps.y-cm.y+p.of;c.globalAlpha=p.al;c.fillStyle=p.co;c.beginPath();c.arc(x,y,p.sz,0,Math.PI*2);c.fill();c.globalAlpha=p.al*.25;c.beginPath();c.arc(x,y,p.sz*2,0,Math.PI*2);c.fill();c.globalAlpha=1})}
+
+/* === MINIMAP === */
+function dMM(){if(!document.getElementById('mm').classList.contains('on'))return;var w=200,h=100,sx2=w/LB.w,sy2=h/LB.h;mx2.fillStyle='rgba(247,247,249,0.95)';mx2.fillRect(0,0,w,h);mx2.strokeStyle='#C8E8D8';mx2.lineWidth=6;mx2.beginPath();VP.forEach(function(p,i){i===0?mx2.moveTo(p.x*sx2,p.y*sy2):mx2.lineTo(p.x*sx2,p.y*sy2)});mx2.stroke();va.forEach(function(v){mx2.fillStyle=v.o?FL:RD;mx2.fillRect(v.x*sx2-2,v.y*sy2-2,4,4)});kc.forEach(function(k){if(!k.col){mx2.fillStyle=LV;mx2.fillRect(k.x*sx2-2,k.y*sy2-2,4,4)}});mx2.fillStyle=CO;mx2.beginPath();mx2.arc(pl.x*sx2,pl.y*sy2,3,0,Math.PI*2);mx2.fill()}
+
+/* === GAME LOGIC === */
+function ch1(){if(st.cp===0&&va.every(function(v){return v.o}))cP2('Valvulas Linfaticas',100)}
+function ch2(){if(st.cp===1)cP2('Bombas Musculares',100)}
+function ch3(){if(st.cp===2&&ob.length===0)cP2('Obstruccion y Drenaje',100)}
+function cP2(n,pts){if(st.pc.indexOf(n)>=0)return;st.pc.push(n);st.sc+=pts;st.pr=Math.min(100,st.pr+33);sO();uH();shDlg('Puzzle completado!',n+'\nPuntos: +'+pts,[{l:'Continuar',a:'nP'}]);setTimeout(function(){sNP()},200)}
+function sNP(){hDlg();if(st.pc.length>=3){setTimeout(function(){sQz()},500)}else{st.cp=st.pc.length;shPI(st.cp)}}
+function shPI(idx){var info=[{t:'Puzzle 1: Valvulas',x:'Haz clic en cada valvula para abrirla. Todas deben abrirse para que la linfa fluya.'},{t:'Puzzle 2: Bombas',x:'Haz clic en las bombas (P) para activarlas y observa como las particulas aceleran.'},{t:'Puzzle 3: Obstruccion',x:'Haz clic sobre la obstruccion repetidamente para eliminarla.'}];shDlg(info[idx].t,info[idx].x,[{l:'Entendido',a:''}])}
+
+/* === DIALOGUE === */
+function shDlg(t,x,ch){document.getElementById('dgT').textContent=t;document.getElementById('dgX').textContent=x;var cd=document.getElementById('dgC');cd.innerHTML='';ch.forEach(function(c2){var b=document.createElement('button');b.className='dbb';b.textContent=c2.l;b.onclick=function(){sC();if(c2.a==='nP')sNP();else hDlg()};cd.appendChild(b)});document.getElementById('dlg').classList.add('on')}
+function hDlg(){document.getElementById('dlg').classList.remove('on')}
+function uZ(){var lb=['Normal','x1.3','x1.8','x2.5'];var el=document.getElementById('tz');el.textContent='Zoom: '+lb[pl.zm];el.classList.add('on')}
+
+/* === HUD === */
+function uH(){document.getElementById('huC').textContent='Puntos: '+st.sc;document.getElementById('huF').style.width=st.pr+'%'}
+
+/* === BADGES === */
+function eB(n){if(st.bd.indexOf(n)>=0)return;st.bd.push(n);sG();var p=document.getElementById('bp');p.textContent='Medalla: '+n+'!';p.classList.add('on');setTimeout(function(){p.classList.remove('on')},3000)}
+
+/* === CARD POPUP === */
+function shCP(k){document.getElementById('cpT').textContent=k.t;document.getElementById('cpX').textContent=k.x2;document.getElementById('cp').classList.add('on');st.sc+=25;uH()}
+function closeCP(){sC();document.getElementById('cp').classList.remove('on')}
+
+/* === FLOW === */
+function startGame(m){eA();sC();st.mode=m==='learning'?'learning':'exploration';st.sc=0;st.pr=0;st.cp=0;st.pc=[];st.tm=0;pl.x=100;pl.y=300;pl.zm=0;va.forEach(function(v){v.o=false});po.forEach(function(p){p.a=false;p.cd=0});ob=[{id:'o1',x:800,y:300,h:2,mh:2,s:25}];kc.forEach(function(k){k.col=false});document.getElementById('menu').classList.remove('on');document.getElementById('hud').classList.add('on');document.getElementById('huT').textContent='Vasos Linfaticos';document.getElementById('huS').textContent=m==='learning'?'Nivel 1 de 5 (Guiado)':'Exploracion Libre';uH();if(m==='learning'){shDlg('Bienvenido Linfoexplorador!','Exploraremos los vasos linfaticos.\n\nWASD para mover, E o clic para interactuar.',[{l:'Comenzar',a:''}]);setTimeout(function(){if(document.getElementById('dlg').classList.contains('on'))hDlg();sNP()},5000)}lEv('start_'+m)}
+function startSandbox(){eA();sC();st.mode='sandbox';st.sc=0;st.tm=0;pl.x=400;pl.y=300;pl.zm=0;va.forEach(function(v){v.o=true});po.forEach(function(p){p.a=false;p.cd=0});ob=[];document.getElementById('menu').classList.remove('on');document.getElementById('hud').classList.add('on');document.getElementById('huT').textContent='Laboratorio Virtual';document.getElementById('huS').textContent='Sandbox';document.getElementById('sbp').classList.add('on');uH();shDlg('Laboratorio Virtual','Usa las herramientas del panel derecho.',[{l:'Comenzar',a:''}]);lEv('start_sandbox')}
+function goMenu(){sC();saveProg();st.mode='menu';document.getElementById('hud').classList.remove('on');document.getElementById('sbp').classList.remove('on');document.getElementById('mm').classList.remove('on');document.getElementById('pause').classList.remove('on');document.getElementById('menu').classList.add('on');hDlg()}
+function togPau(){sC();if(st.mode==='paused'){st.mode=st.prev||'learning';document.getElementById('pause').classList.remove('on')}else if(st.mode==='learning'||st.mode==='exploration'||st.mode==='sandbox'){st.prev=st.mode;st.mode='paused';document.getElementById('pause').classList.add('on')}}
+function togMM(){sC();document.getElementById('mm').classList.toggle('on')}
+
+/* === SANDBOX === */
+var sT='flow';
+function selT(t){sT=t;document.querySelectorAll('.tb').forEach(function(b){b.classList.toggle('on',b.dataset.t===t)});sC()}
+function clrSB(){sC();va=[];po=[];ob=[]}
+function setSpd(v){document.getElementById('spL').textContent=v+'x';pts.forEach(function(p){p.sp=(.02+Math.random()*.015)*parseFloat(v)})}
+function sbC(cx2,cy2){var wx=cx2+cm.x,wy=cy2+cm.y;if(sT==='valve'){va.push({id:'v'+(va.length+1),x:wx,y:wy,o:true,s:20});sV()}else if(sT==='pump'){po.push({id:'p'+(po.length+1),x:wx,y:wy,a:false,cd:0});sP()}else if(sT==='obstruct'){ob.push({id:'o'+(ob.length+1),x:wx,y:wy,h:3,mh:3,s:25});sB()}else if(sT==='pathogen'){sB();for(var i=0;i<5;i++){var pp=new Pt();pp.t=Math.random();pp.co=CO;pp.sz=5+Math.random()*3;pp.of=(Math.random()-.5)*60;pts.push(pp)}}}
+
+/* === QUIZ === */
+var qz2=[{q:'Que tipo de vasos transportan la linfa hacia los ganglios?',o:['Vasos aferentes','Vasos eferentes','Capilares sanguineos','Venas linfaticas'],c:0,e:'Los vasos aferentes llevan la linfa sin filtrar hacia el ganglio.'},{q:'Cual es la funcion de las valvulas?',o:['Producir linfocitos','Impedir el reflujo de la linfa','Filtrar bacterias','Producir anticuerpos'],c:1,e:'Las valvulas semilunares aseguran flujo unidireccional.'},{q:'Que celulas presentan antigenos a los linfocitos T?',o:['Eritrocitos','Celulas presentadoras de antigeno (APC)','Plaquetas','Fibroblastos'],c:1,e:'Las celulas dendriticas y macrofagos actuan como APC.'},{q:'El sistema linfatico forma parte del sistema circulatorio.',o:['Verdadero','Falso'],c:0,e:'Si, drena liquido intersticial y lo devuelve a la circulacion.'},{q:'Donde maduran los linfocitos T?',o:['Bazo','Medula osea','Timo','Amigdalas'],c:2,e:'Los linfocitos T maduran en el timo.'},{q:'Que ocurre al obstruir un vaso linfatico?',o:['Nada','Se produce edema','Aumenta presion arterial','Se activan plaquetas'],c:1,e:'La obstruccion causa acumulacion de liquido = linfedema.'},{q:'Que organo linfatico filtra la sangre?',o:['Ganglio','Timo','Bazo','Amigdala'],c:2,e:'El bazo filtra sangre, eliminando globulos rojos viejos.'},{q:'La linfa contiene globulos rojos en gran cantidad.',o:['Verdadero','Falso'],c:1,e:'La linfa contiene principalmente linfocitos, no eritrocitos.'}];
+var qz={cur:0,sc:0,ans:false};
+function sQz(){st.mode='quiz';document.getElementById('hud').classList.remove('on');document.getElementById('dlg').classList.remove('on');qz={cur:0,sc:0,ans:false};document.getElementById('qz').classList.add('on');document.getElementById('qR').style.display='none';document.getElementById('qN').style.display='none';sQQ()}
+function sQQ(){if(qz.cur>=qz2.length){sQR();return}var q=qz2[qz.cur];qz.ans=false;document.getElementById('qQ').textContent=q.q;document.getElementById('qD').textContent='';document.getElementById('qN').style.display='none';document.getElementById('qF').style.width=(qz.cur/qz2.length*100)+'%';document.getElementById('qS').textContent=qz.sc+'/'+qz2.length;var ad=document.getElementById('qA');ad.innerHTML='';q.o.forEach(function(opt,i){var b=document.createElement('button');b.className='qab';b.textContent=opt;(function(ii){b.onclick=function(){sA(ii,b)}})(i);ad.appendChild(b)})}
+function sA(i,btn){if(qz.ans)return;qz.ans=true;var q=qz2[qz.cur],ok=i===q.c;document.querySelectorAll('.qab').forEach(function(b){b.classList.add('dis')});if(ok){btn.classList.add('ok');qz.sc++;document.getElementById('qD').innerHTML='Correcto! '+q.e;sO()}else{btn.classList.add('no');document.querySelectorAll('.qab')[q.c].classList.add('ok');document.getElementById('qD').innerHTML='Incorrecto. '+q.e;sN()}document.getElementById('qS').textContent=qz.sc+'/'+qz2.length;document.getElementById('qN').style.display='inline-block'}
+function nextQ(){sC();qz.cur++;sQQ()}
+function sQR(){var pct=Math.round(qz.sc/qz2.length*100),msg='';if(pct>=90){msg='Excelente!';eB('Quiz Expert')}else if(pct>=70)msg='Muy bien!';else if(pct>=50)msg='Aprobado.';else msg='Necesitas repasar.';document.getElementById('qQ').textContent='';document.getElementById('qA').innerHTML='';document.getElementById('qD').innerHTML='';document.getElementById('qN').style.display='none';document.getElementById('qF').style.width='100%';var rd=document.getElementById('qR');rd.style.display='block';rd.innerHTML='<h3>Resultado: '+qz.sc+'/'+qz2.length+' ('+pct+'%)</h3><p>'+msg+'</p><div style="margin-top:16px"><button class="mb pri" onclick="goMenu()" style="min-width:160px;padding:10px 20px;font-size:15px">Menu</button></div>';st.pr=100;st.sc+=qz.sc*50;eB('Primer Paso');st.qr.push({s:qz.sc,t:qz2.length,p:pct,d:new Date().toISOString()});saveProg();lEv('quiz',{s:qz.sc,t:qz2.length,p:pct})}
+
+/* === SETTINGS === */
+function showSet(){sC();document.getElementById('settings').classList.add('on')}
+function hideSet(){sC();document.getElementById('settings').classList.remove('on')}
+
+/* === PROGRESS SAVE === */
+function saveProg(){if(!cur)return;var us=gU();if(!us[cur.name])return;us[cur.name].sc=st.sc;us[cur.name].bd=st.bd;us[cur.name].cd=Object.keys(st.cd).filter(function(k){return st.cd[k]});us[cur.name].qr=st.qr;us[cur.name].tm=(us[cur.name].tm||0)+st.tm;sU(us);var db=gD();db.a[cur.name]={sc:st.sc,bd:st.bd.length,cc:Object.keys(st.cd).filter(function(k){return st.cd[k]}).length,pc:st.pc.length,qr:st.qr,tp:us[cur.name].tm,la:new Date().toISOString()};sD(db)}
+function lEv(t,d){if(!cur)return;var db=gD();if(!db.a[cur.name])db.a[cur.name]={};if(!db.a[cur.name].ev)db.a[cur.name].ev=[];db.a[cur.name].ev.push({t:t,d:d||{},tm:new Date().toISOString()});sD(db)}
+
+/* === ANALYTICS === */
+function goAnl(){if(!cur||cur.role!=='teacher'){alert('Solo docentes');return}sC();document.getElementById('menu').classList.remove('on');document.getElementById('anl').classList.add('on');rAn()}
+function rAn(){var db=gD(),us=gU(),an=db.a||{},ks=Object.keys(an),tp=Object.keys(us).filter(function(k){return us[k].r==='student'}).length,tq=0,ts=0;ks.forEach(function(k){if(an[k].qr)tq+=an[k].qr.length;ts+=an[k].sc||0});var h='<h2>Panel Docente</h2><div class="st">';h+='<div class="scd"><div class="vl">'+tp+'</div><div class="lb">Estudiantes</div></div>';h+='<div class="scd"><div class="vl">'+ks.length+'</div><div class="lb">Con actividad</div></div>';h+='<div class="scd"><div class="vl">'+tq+'</div><div class="lb">Quizzes</div></div>';h+='<div class="scd"><div class="vl">'+ts+'</div><div class="lb">Puntos totales</div></div></div>';if(ks.length===0){h+='<p style="color:#888;text-align:center;padding:40px">Sin datos aun.</p>'}else{h+='<table><tr><th>Usuario</th><th>Puntos</th><th>Puzzles</th><th>Tarjetas</th><th>Medallas</th><th>Quizzes</th><th>Tiempo(min)</th><th>Ultima vez</th></tr>';ks.forEach(function(k){var d=an[k],pct=d.qr&&d.qr.length>0?d.qr[d.qr.length-1].p:'-';h+='<tr><td><b>'+k+'</b></td><td>'+(d.sc||0)+'</td><td>'+(d.pc||0)+'/3</td><td>'+(d.cc||0)+'/3</td><td>'+(d.bd||0)+'</td><td>'+pct+'%</td><td>'+Math.round((d.tp||0)/60)+'</td><td>'+new Date(d.la).toLocaleDateString('es')+'</td></tr>'});h+='</table>'}h+='<button class="ebtn" onclick="expJ()">Exportar JSON</button><button class="ebtn" onclick="clAn()" style="border-color:#EDEDED;color:#666;background:rgba(237,237,237,0.2)">Volver</button>';document.getElementById('anC').innerHTML=h}
+function expJ(){var db=gD(),us=gU(),d={date:new Date().toISOString(),users:us,analytics:db.a,sessions:db.s},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='linfovia_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u)}
+function clAn(){sC();document.getElementById('anl').classList.remove('on');document.getElementById('menu').classList.add('on')}
+
+/* === MAIN LOOP === */
+var lt=0;
+function loop(ts){var dt=Math.min((ts-lt)/1000,.05);lt=ts;st.tm+=dt;c.clearRect(0,0,cv.width,cv.height);if(st.mode==='menu'){dMB()}else if(st.mode==='paused'){dSc(dt)}else if(st.mode!=='quiz'){uPl(dt);uC();po.forEach(function(p){if(p.cd>0)p.cd-=dt;if(p.cd<=0)p.a=false});uP(dt);dSc(dt);dMM()}requestAnimationFrame(loop)}
+function dMB(){var g=c.createRadialGradient(cv.width/2,cv.height/2,0,cv.width/2,cv.height/2,cv.width*.6);g.addColorStop(0,'#F7F7F9');g.addColorStop(.5,'#E8F0E8');g.addColorStop(1,'#D0E8D0');c.fillStyle=g;c.fillRect(0,0,cv.width,cv.height);for(var i=0;i<30;i++){var x=(Math.sin(st.tm*.3+i*1.7)*.5+.5)*cv.width,y=(Math.cos(st.tm*.2+i*2.3)*.5+.5)*cv.height,sz=2+Math.sin(i)*2;c.fillStyle=i%3===0?GR:i%3===1?AQ:FL;c.globalAlpha=.15+Math.sin(st.tm+i)*.1;c.beginPath();c.arc(x,y,sz,0,Math.PI*2);c.fill()}c.globalAlpha=1}
+function dSc(dt){c.save();var zl=[1,1.3,1.8,2.5],z=zl[pl.zm];c.translate(cv.width/2,cv.height/2);c.scale(z,z);c.translate(-cv.width/2,-cv.height/2);dBG();dVW();dPt();va.forEach(function(v){dVa(v)});po.forEach(function(p){dPo(p)});ob.forEach(function(o){dOb(o)});kc.forEach(function(k){dKc(k)});if(st.mode!=='quiz')dPl();c.restore()}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
